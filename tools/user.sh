@@ -79,7 +79,7 @@ _show_connection_info() {
 
     # >> IPv4 Links
     if [[ "$IPV4" != "N/A" ]]; then
-        echo -e "${GREEN}[IPv4]${PLAIN} ${IPV4}"
+        echo -e "${GREEN}>> IPv4 节点 (通用):${PLAIN}"
         
         # Vision Link
         if [ -n "$PORT_VISION" ]; then
@@ -97,7 +97,7 @@ _show_connection_info() {
 
     # >> IPv6 Links
     if [[ "$IPV6" != "N/A" ]]; then
-        echo -e "${BLUE}[IPv6]${PLAIN} ${IPV6}"
+        echo -e "${GREEN}>> IPv6 节点 (专用):${PLAIN}"
         
         # Vision Link
         if [ -n "$PORT_VISION" ]; then
