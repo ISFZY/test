@@ -1,4 +1,3 @@
-cat > install.sh << 'EOF'
 #!/bin/bash
 
 # =========================================================
@@ -227,6 +226,3 @@ while true; do
         *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
     esac
 done
-EOF
-
-chmod +x install.sh && bash install.sh
