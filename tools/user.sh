@@ -25,7 +25,7 @@ if ! [ -x "$XRAY_BIN" ]; then echo -e "${RED}Error: 缺少 xray 核心。${PLAIN
 _print_list() {
     echo -e "${BLUE}>>> 当前用户列表 (User List)${PLAIN}"
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
-    printf "${YELLOW}%-4s %-25s %-40s${PLAIN}\n" "ID" "备注 (Email)" "UUID"
+    printf "${YELLOW}%-4s %-27s %-40s${PLAIN}\n" "ID" "备注 (Email)" "UUID"
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
     
     # 默认读取第一个入站作为主列表
@@ -84,13 +84,13 @@ _show_connection_info() {
         # Vision Link
         if [ -n "$PORT_VISION" ]; then
             local link="vless://${target_uuid}@${IPV4}:${PORT_VISION}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_Vision"
-            echo -e "Vision: ${GRAY}${link}${PLAIN}"
+            echo -e "${YELLOW}Vision:${PLAIN} ${GRAY}${link}${PLAIN}"
         fi
         
         # XHTTP Link
         if [ -n "$PORT_XHTTP" ]; then
             local link="vless://${target_uuid}@${IPV4}:${PORT_XHTTP}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=xhttp&path=${XHTTP_PATH}&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_XHTTP"
-            echo -e "XHTTP : ${GRAY}${link}${PLAIN}"
+            echo -e "${YELLOW}XHTTP :${PLAIN} ${GRAY}${link}${PLAIN}"
         fi
         echo ""
     fi
@@ -102,13 +102,13 @@ _show_connection_info() {
         # Vision Link
         if [ -n "$PORT_VISION" ]; then
             local link="vless://${target_uuid}@[${IPV6}]:${PORT_VISION}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_Vision_v6"
-            echo -e "Vision: ${GRAY}${link}${PLAIN}"
+            echo -e "${YELLOW}Vision:${PLAIN} ${GRAY}${link}${PLAIN}"
         fi
         
         # XHTTP Link
         if [ -n "$PORT_XHTTP" ]; then
             local link="vless://${target_uuid}@[${IPV6}]:${PORT_XHTTP}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=xhttp&path=${XHTTP_PATH}&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_XHTTP_v6"
-            echo -e "XHTTP : ${GRAY}${link}${PLAIN}"
+            echo -e "${YELLOW}XHTTP :${PLAIN} ${GRAY}${link}${PLAIN}"
         fi
         echo ""
     fi
