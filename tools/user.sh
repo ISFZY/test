@@ -11,10 +11,11 @@ PLAIN="\033[0m"
 GRAY="\033[90m"
 
 CONFIG_FILE="/usr/local/etc/xray/config.json"
+XRAY_BIN="/usr/local/bin/xray"
 
 # 检查依赖
 if ! command -v jq &> /dev/null; then echo -e "${RED}错误: 缺少 jq 组件。${PLAIN}"; exit 1; fi
-if ! command -v xray &> /dev/null; then echo -e "${RED}错误: 缺少 xray 核心。${PLAIN}"; exit 1; fi
+if ! [ -f "$XRAY_BIN" ]; then echo -e "${RED}错误: 缺少 xray 核心文件。${PLAIN}"; exit 1; fi
 
 # =========================================================
 # 核心逻辑
@@ -37,36 +38,50 @@ _print_list() {
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
 }
 
-# 2. 生成链接并显示 (支持 v4/v6 双栈)
+# 2. 生成链接并显示
 _show_connection_info() {
     local uuid=$1
     local email=$2
 
     echo -e "\n${BLUE}>>> 正在获取网络连接信息 (IPv4 & IPv6)...${PLAIN}"
     
-    # === 1. 独立检测 IP ===
+    # 1. 获取 IP
     local ipv4=$(curl -s4m 1 https://ip.gs)
     local ipv6=$(curl -s6m 1 https://ip.gs)
-    
-    # 如果都获取失败，给个占位符
     if [ -z "$ipv4" ] && [ -z "$ipv6" ]; then ipv4="YOUR_IP"; fi
 
-    # === 2. 遍历所有节点 ===
+    # 2. 遍历节点
     local count=$(jq '.inbounds | length' "$CONFIG_FILE")
 
     for ((i=0; i<count; i++)); do
         local protocol=$(jq -r ".inbounds[$i].protocol" "$CONFIG_FILE")
-        # 只处理 VLESS 协议
         if [ "$protocol" != "vless" ]; then continue; fi
 
-        # 提取参数
+        # 提取基础参数
         local tag=$(jq -r ".inbounds[$i].tag // \"node_$i\"" "$CONFIG_FILE")
         local port=$(jq -r ".inbounds[$i].port" "$CONFIG_FILE")
         local type=$(jq -r ".inbounds[$i].streamSettings.network" "$CONFIG_FILE")
         local sni=$(jq -r ".inbounds[$i].streamSettings.realitySettings.serverNames[0]" "$CONFIG_FILE")
-        local priv_key=$(jq -r ".inbounds[$i].streamSettings.realitySettings.privateKey" "$CONFIG_FILE")
-        local pbk=$(xray x25519 -i "$priv_key" | grep "Public" | awk '{print $3}')
         local sid=$(jq -r ".inbounds[$i].streamSettings.realitySettings.shortIds[0]" "$CONFIG_FILE")
+        
+        # === 获取私钥与公钥 ===
+        # 尝试从当前节点读取私钥
+        local priv_key=$(jq -r ".inbounds[$i].streamSettings.realitySettings.privateKey // \"\"" "$CONFIG_FILE")
+        
+        # 如果当前节点没写私钥 (jq 返回空字符串)，则去第一个节点找 (通常 Reality 节点共用一个 key)
+        if [ -z "$priv_key" ]; then
+            priv_key=$(jq -r ".inbounds[0].streamSettings.realitySettings.privateKey" "$CONFIG_FILE")
+        fi
+
+        # 计算公钥 (强制使用绝对路径 xray，且 grep 忽略大小写)
+        local pbk=$($XRAY_BIN x25519 -i "$priv_key" | grep -i "Public" | awk '{print $3}')
+
+        # 校验 PBK 是否成功获取
+        if [ -z "$pbk" ]; then
+            echo -e "${RED}警告: 节点 $tag 无法获取 Public Key，请检查 config.json 中的 privateKey 是否正确。${PLAIN}"
+            pbk="MISSING_KEY"
+        fi
+        # ================================
         
         # 获取 flow
         local flow=$(jq -r ".inbounds[$i].settings.clients[] | select(.id==\"$uuid\") | .flow // \"\"" "$CONFIG_FILE")
@@ -79,18 +94,16 @@ _show_connection_info() {
 
         echo -e "${YELLOW}--- [节点: $tag ($type)] ---${PLAIN}"
 
-        # === 3. 生成 IPv4 链接 ===
+        # 生成 IPv4 链接
         if [ -n "$ipv4" ]; then
             local link4="vless://${uuid}@${ipv4}:${port}?security=reality&encryption=none&pbk=${pbk}&headerType=none&fp=chrome&type=${type}&flow=${flow}&sni=${sni}&sid=${sid}&path=${path}#${email}_v4"
             echo -e "${GREEN}[IPv4]${PLAIN} ${ipv4}:${port}"
             echo -e "链接: ${GRAY}${link4}${PLAIN}"
         fi
 
-        # === 4. 生成 IPv6 链接 (注意 IP 必须加 []) ===
+        # 生成 IPv6 链接
         if [ -n "$ipv6" ]; then
-            # 分隔线
             if [ -n "$ipv4" ]; then echo -e "${GRAY}- - - - - - - - - - - - - - - - - - - -${PLAIN}"; fi
-            
             local link6="vless://${uuid}@[${ipv6}]:${port}?security=reality&encryption=none&pbk=${pbk}&headerType=none&fp=chrome&type=${type}&flow=${flow}&sni=${sni}&sid=${sid}&path=${path}#${email}_v6"
             echo -e "${BLUE}[IPv6]${PLAIN} ${ipv6}:${port}"
             echo -e "链接: ${GRAY}${link6}${PLAIN}"
@@ -228,9 +241,9 @@ while true; do
     echo -e "${BLUE}=================================================${PLAIN}"
     echo -e "${BLUE}           Xray 多用户管理 (User Manager)        ${PLAIN}"
     echo -e "${BLUE}=================================================${PLAIN}"
-    echo -e "  1. 查看列表 & 连接信息"
-    echo -e "  2. ${GREEN}添加新用户 ${PLAIN}"
-    echo -e "  3. ${RED}删除旧用户 ${PLAIN}"
+    echo -e "  1. 查看列表 & 连接信息 (List & Details)"
+    echo -e "  2. ${GREEN}添加新用户 (Add)${PLAIN}"
+    echo -e "  3. ${RED}删除旧用户 (Delete)${PLAIN}"
     echo -e "-------------------------------------------------"
     echo -e "  0. 退出"
     echo -e ""
