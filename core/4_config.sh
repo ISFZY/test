@@ -101,13 +101,13 @@ cat > /usr/local/etc/xray/config.json <<EOF
   "inbounds": [
     {
       "tag": "vision_node", "port": ${PORT_VISION}, "protocol": "vless",
-      "settings": { "clients": [ { "id": "${UUID}", "flow": "xtls-rprx-vision" } ], "decryption": "none" },
+      "settings": { "clients": [ { "id": "${UUID}", "flow": "xtls-rprx-vision", "email": "admin" } ], "decryption": "none" },
       "streamSettings": { "network": "tcp", "security": "reality", "realitySettings": { "show": false, "dest": "${SNI_HOST}:443", "serverNames": [ "${SNI_HOST}" ], "privateKey": "${PRIVATE_KEY}", "shortIds": [ "${SHORT_ID}" ], "fingerprint": "chrome" } },
       "sniffing": { "enabled": true, "destOverride": [ "http", "tls", "quic" ], "routeOnly": true }
     },
     {
       "tag": "xhttp_node", "port": ${PORT_XHTTP}, "protocol": "vless",
-      "settings": { "clients": [ { "id": "${UUID}", "flow": "" } ], "decryption": "none" },
+      "settings": { "clients": [ { "id": "${UUID}", "flow": "", "email": "admin" } ], "decryption": "none" },
       "streamSettings": { "network": "xhttp", "security": "reality", "xhttpSettings": { "path": "${XHTTP_PATH}" }, "realitySettings": { "show": false, "dest": "${SNI_HOST}:443", "serverNames": [ "${SNI_HOST}" ], "privateKey": "${PRIVATE_KEY}", "shortIds": [ "${SHORT_ID}" ], "fingerprint": "chrome" } },
       "sniffing": { "enabled": true, "destOverride": [ "http", "tls", "quic" ], "routeOnly": true }
     }
