@@ -27,17 +27,15 @@ list_users() {
     echo -e "----------------------------------------------------------------"
     
     # 使用 jq 解析并格式化输出
-    # 格式: 索引 | email | id
     jq -r '.inbounds[0].settings.clients[] | "\(.email) \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
         printf "%-5s %-20s %-40s\n" "$idx" "$email" "$uuid"
     done
     echo -e "----------------------------------------------------------------"
 }
 
-# 4. 重启服务与自动回滚 (辅助函数，放在前面以供调用)
+# 4. 重启服务与自动回滚 (辅助函数)
 restart_service() {
     local success_msg=$1
-    # 定义临时备份文件的位置
     local backup_file="${CONFIG_FILE}.bak"
 
     # 尝试重启
@@ -45,31 +43,21 @@ restart_service() {
     
     # 检查状态
     if systemctl is-active --quiet xray; then
-        # === 成功情况 ===
         echo -e "${GREEN}${success_msg}${PLAIN}"
-        # 确认服务正常后，删除临时备份
         rm -f "$backup_file"
     else
-        # === 失败情况 (触发回滚) ===
         echo -e "${RED}严重错误：Xray 服务启动失败！配置文件可能存在语法错误。${PLAIN}"
         
         if [ -f "$backup_file" ]; then
             echo -e "${YELLOW}>>> 正在触发自动回滚机制 (Auto Rollback)...${PLAIN}"
-            
-            # 1. 还原配置
             cp "$backup_file" "$CONFIG_FILE"
-            
-            # 2. 再次尝试重启
             systemctl restart xray
             
             if systemctl is-active --quiet xray; then
                 echo -e "${GREEN}回滚成功！系统已自动恢复到修改前的状态。${PLAIN}"
-                echo -e "${GRAY}本次修改未生效，请检查输入内容。${PLAIN}"
-                # 删除备份
                 rm -f "$backup_file"
             else
                 echo -e "${RED}灾难性错误：回滚后服务依然无法启动！${PLAIN}"
-                echo -e "${RED}请手动检查配置文件: $CONFIG_FILE${PLAIN}"
             fi
         else
             echo -e "${RED}未找到备份文件，无法执行回滚！${PLAIN}"
@@ -84,23 +72,20 @@ add_user() {
     read -p "请输入用户备注 (例如: friend_bob): " email
     if [ -z "$email" ]; then echo -e "${RED}备注不能为空${PLAIN}"; return; fi
     
-    # 检查备注是否重复
     if grep -q "$email" "$CONFIG_FILE"; then
         echo -e "${RED}错误: 该备注已存在！${PLAIN}"
         return
     fi
     
-    # 生成新 UUID
     local new_uuid=$(xray uuid)
-    # 获取 flow 设置 (Reality通常是 xtls-rprx-vision，跟随主配置)
     local flow=$(jq -r '.inbounds[0].settings.clients[0].flow // "xtls-rprx-vision"' "$CONFIG_FILE")
     
     echo -e "正在添加: ${GREEN}$email${PLAIN} (UUID: $new_uuid)"
     
-    # [关键步骤] 在修改前创建临时备份
+    # [关键] 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-    # 使用 jq 将新对象追加到 clients 数组
+    # [关键] 写入配置 (这是之前报错的地方，现在已修复)
     tmp=$(mktemp)
     jq --arg email "$email" --arg id "$new_uuid" --arg flow "$flow" \
        '.inbounds[0].settings.clients += [{"id": $id, "flow": $flow, "email": $email}]' \
@@ -108,7 +93,6 @@ add_user() {
        
     restart_service "添加成功！"
     
-    # 显示该用户的分享链接
     echo -e "${YELLOW}新用户凭证:${PLAIN}"
     echo -e "UUID: $new_uuid"
     echo -e "Flow: $flow"
@@ -122,17 +106,14 @@ del_user() {
     
     if ! [[ "$idx" =~ ^[0-9]+$ ]]; then echo -e "${RED}输入无效${PLAIN}"; return; fi
     
-    # 获取数组长度
     local len=$(jq '.inbounds[0].settings.clients | length' "$CONFIG_FILE")
     
     if [ "$idx" -lt 1 ] || [ "$idx" -gt "$len" ]; then
         echo -e "${RED}序号超出范围${PLAIN}"; return; fi
         
-    # 防止删除最后一个用户 (导致配置为空)
     if [ "$len" -le 1 ]; then
         echo -e "${RED}错误: 至少保留一个用户，无法清空！${PLAIN}"; return; fi
 
-    # 转换序号为数组下标 (jq 从 0 开始)
     local array_idx=$((idx - 1))
     local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email" "$CONFIG_FILE")
 
@@ -142,11 +123,11 @@ del_user() {
     
     echo -e "${BLUE}>>> 正在删除...${PLAIN}"
 
-    # [关键步骤] 在修改前创建临时备份
+    # [关键] 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
+    # [关键] 执行删除
     tmp=$(mktemp)
-    # 删除了之前的占位符
     jq "del(.inbounds[0].settings.clients[$array_idx])" "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
     
     restart_service "用户已删除。"
