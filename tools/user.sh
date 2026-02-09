@@ -37,26 +37,37 @@ restart_service() {
     local success_msg=$1
     local backup_file="${CONFIG_FILE}.bak"
 
-    # 尝试重启
+    # [关键修复] 确保配置文件权限正确，否则 Xray 无法读取
+    chmod 644 "$CONFIG_FILE"
+
+    echo -e "${BLUE}>>> 正在重启服务...${PLAIN}"
     systemctl restart xray
+    
+    # [关键修复] 等待 2 秒，确保服务真正启动
+    sleep 2
     
     # 检查状态
     if systemctl is-active --quiet xray; then
         echo -e "${GREEN}${success_msg}${PLAIN}"
         rm -f "$backup_file"
     else
-        echo -e "${RED}严重错误：Xray 服务启动失败！配置文件可能存在语法错误。${PLAIN}"
+        echo -e "${RED}严重错误：Xray 服务启动失败！正在尝试回滚...${PLAIN}"
+        
+        # 尝试输出具体的错误日志，帮助排查
+        journalctl -u xray --no-pager -n 10 | tail -n 5
         
         if [ -f "$backup_file" ]; then
             echo -e "${YELLOW}>>> 正在触发自动回滚机制 (Auto Rollback)...${PLAIN}"
             cp "$backup_file" "$CONFIG_FILE"
+            chmod 644 "$CONFIG_FILE" # 回滚后也要修权限
             systemctl restart xray
             
             if systemctl is-active --quiet xray; then
-                echo -e "${GREEN}回滚成功！系统已自动恢复到修改前的状态。${PLAIN}"
+                echo -e "${GREEN}回滚成功！系统已恢复到修改前的状态。${PLAIN}"
                 rm -f "$backup_file"
             else
                 echo -e "${RED}灾难性错误：回滚后服务依然无法启动！${PLAIN}"
+                echo -e "${RED}请手动检查: xray run -test -conf $CONFIG_FILE${PLAIN}"
             fi
         else
             echo -e "${RED}未找到备份文件，无法执行回滚！${PLAIN}"
@@ -77,14 +88,15 @@ add_user() {
     fi
     
     local new_uuid=$(xray uuid)
-    local flow=$(jq -r '.inbounds[0].settings.clients[0].flow // "xtls-rprx-vision"' "$CONFIG_FILE")
+    # 获取第一个用户的 flow，如果是 Vision 协议则需要
+    local flow=$(jq -r '.inbounds[0].settings.clients[0].flow // ""' "$CONFIG_FILE")
     
     echo -e "正在添加: ${GREEN}$email${PLAIN} (UUID: $new_uuid)"
     
-    # [关键] 创建备份
+    # 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-    # [关键] 写入配置
+    # 写入配置
     tmp=$(mktemp)
     jq --arg email "$email" --arg id "$new_uuid" --arg flow "$flow" \
        '.inbounds[0].settings.clients += [{"id": $id, "flow": $flow, "email": $email}]' \
@@ -122,10 +134,10 @@ del_user() {
     
     echo -e "${BLUE}>>> 正在删除...${PLAIN}"
 
-    # [关键] 创建备份
+    # 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-    # [关键] 执行删除
+    # 执行删除
     tmp=$(mktemp)
     jq "del(.inbounds[0].settings.clients[$array_idx])" "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
     
@@ -156,4 +168,3 @@ while true; do
         *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
     esac
 done
-
