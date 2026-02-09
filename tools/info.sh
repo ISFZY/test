@@ -64,22 +64,22 @@ echo -e "  Public Key  : ${YELLOW}${PUBLIC_KEY}${PLAIN} (客户端)"
 echo -e "  Private Key : ${RED}${PRIVATE_KEY}${PLAIN} (服务端)"
 echo -e "-------------------------------------------------------------------"
 
-# 节点名称黄色高亮，视觉更清晰
+# 节点
 if [[ -n "$LINK_V4_VIS" ]]; then
     echo -e "${GREEN}>> IPv4 节点 (通用):${PLAIN}"
-    echo -e "${YELLOW}Vision${PLAIN}: ${LINK_V4_VIS}"
-    echo -e "${YELLOW}XHTTP ${PLAIN}: ${LINK_V4_XHT}"
+    echo -e "${YELLOW}Vision:${PLAIN} ${LINK_V4_VIS}"
+    echo -e "${YELLOW}XHTTP :${PLAIN} ${LINK_V4_XHT}"
     echo ""
 fi
 
 if [[ -n "$LINK_V6_VIS" ]]; then
-    echo -e "${GREEN}>> IPv6 节点 (专用):${PLAIN} ${GRAY}(需支持 v6 网络)${PLAIN}"
-    echo -e "${YELLOW}Vision${PLAIN}: ${LINK_V6_VIS}"
-    echo -e "${YELLOW}XHTTP ${PLAIN}: ${LINK_V6_XHT}"
+    echo -e "${GREEN}>> IPv6 节点 (专用):${PLAIN}"
+    echo -e "${YELLOW}Vision:${PLAIN} ${LINK_V6_VIS}"
+    echo -e "${YELLOW}XHTTP :${PLAIN} ${LINK_V6_XHT}"
     echo ""
 fi
 
-# 补全所有协议的二维码
+# 二维码
 read -n 1 -p "是否生成二维码? (y/n): " CHOICE
 echo ""
 if [[ "$CHOICE" =~ ^[yY]$ ]]; then
@@ -90,7 +90,7 @@ if [[ "$CHOICE" =~ ^[yY]$ ]]; then
         qrencode -t ANSIUTF8 "${LINK_V4_XHT}"
     fi
     
-    # 为了防止刷屏，IPv6 二维码依然需要二次确认
+    # 防止刷屏，IPv6 二维码依然需要二次确认
     if [[ -n "$LINK_V6_VIS" ]]; then
         echo ""
         read -n 1 -p "是否继续生成 IPv6 二维码? (y/n): " CHOICE_V6
