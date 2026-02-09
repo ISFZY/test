@@ -1,4 +1,3 @@
-cat > /usr/local/bin/user << 'EOF'
 #!/bin/bash
 
 # =========================================================
@@ -157,6 +156,4 @@ while true; do
         *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
     esac
 done
-EOF
 
-chmod +x /usr/local/bin/user
