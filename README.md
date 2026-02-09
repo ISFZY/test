@@ -1,4 +1,4 @@
-# 🚀 Xray Auto Installer (Modular Edition)
+# 🚀 Xray Auto Installer
 
 **全自动、模块化的 Xray 部署脚本**
 
