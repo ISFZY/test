@@ -38,7 +38,7 @@
 使用 `root` 用户运行以下命令即可。引导脚本会自动安装 Git、克隆仓库并启动安装程序。
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
 
 ```
 
