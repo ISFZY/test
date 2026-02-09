@@ -12,6 +12,8 @@ PLAIN="\033[0m"
 BACKUP_DIR="/usr/local/etc/xray/backup"
 CONFIG_FILE="/usr/local/etc/xray/config.json"
 XRAY_BIN="/usr/local/bin/xray"
+# 关键：指定资源文件(.dat)的存放路径，防止校验时找不到文件报错
+ASSET_DIR="/usr/local/share/xray"
 
 # 确保备份目录存在
 mkdir -p "$BACKUP_DIR"
@@ -29,7 +31,7 @@ create_backup() {
         return
     fi
 
-    # 生成时间戳文件名: config_20260209_120000.json
+    # 生成时间戳文件名
     local timestamp=$(date "+%Y%m%d_%H%M%S")
     local backup_file="$BACKUP_DIR/config_$timestamp.json"
     
@@ -61,7 +63,6 @@ restore_backup() {
     local i=1
     for file in "${files[@]}"; do
         filename=$(basename "$file")
-        # 尝试读取文件修改时间
         filetime=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
         echo -e "  ${GREEN}$i.${PLAIN} $filename  ${YELLOW}($filetime)${PLAIN}"
         let i++
@@ -74,7 +75,6 @@ restore_backup() {
     
     if [ "$choice" == "0" ]; then return; fi
     
-    # 检查输入是否合法
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -le "${#files[@]}" ] && [ "$choice" -gt 0 ]; then
         local target_file="${files[$((choice-1))]}"
         
@@ -82,8 +82,13 @@ restore_backup() {
         
         # 1. 预检备份文件完整性
         echo -e "正在校验备份文件..."
-        if ! "$XRAY_BIN" run -test -conf "$target_file" >/dev/null 2>&1; then
-            echo -e "${RED}错误：该备份文件已损坏或格式错误，无法还原！${PLAIN}"
+        
+        # 使用环境变量告诉 Xray 资源文件在哪里
+        if ! XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -conf "$target_file" >/dev/null 2>&1; then
+            echo -e "${RED}错误：该备份文件校验失败，无法还原！${PLAIN}"
+            echo -e "${YELLOW}>>> 错误详情 (Debug Info):${PLAIN}"
+            # 再次运行以打印具体错误给用户看
+            XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -conf "$target_file"
             return
         fi
 
@@ -97,7 +102,7 @@ restore_backup() {
                     # 2. 覆盖配置
                     cp "$target_file" "$CONFIG_FILE"
                     
-                    # 3. [关键] 修复权限
+                    # 3. 修复权限
                     chmod 644 "$CONFIG_FILE"
                     
                     # 4. 重启服务
