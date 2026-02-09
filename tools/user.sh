@@ -1,3 +1,4 @@
+cat > /usr/local/bin/user << 'EOF'
 #!/bin/bash
 
 # =========================================================
@@ -26,7 +27,6 @@ list_users() {
     printf "%-5s %-20s %-40s\n" "ID" "备注 (Email)" "UUID"
     echo -e "----------------------------------------------------------------"
     
-    # 使用 jq 解析并格式化输出
     jq -r '.inbounds[0].settings.clients[] | "\(.email) \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
         printf "%-5s %-20s %-40s\n" "$idx" "$email" "$uuid"
     done
@@ -85,7 +85,7 @@ add_user() {
     # [关键] 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
-    # [关键] 写入配置 (这是之前报错的地方，现在已修复)
+    # [关键] 写入配置
     tmp=$(mktemp)
     jq --arg email "$email" --arg id "$new_uuid" --arg flow "$flow" \
        '.inbounds[0].settings.clients += [{"id": $id, "flow": $flow, "email": $email}]' \
@@ -157,3 +157,6 @@ while true; do
         *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
     esac
 done
+EOF
+
+chmod +x /usr/local/bin/user
