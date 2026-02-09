@@ -21,19 +21,21 @@ if ! [ -x "$XRAY_BIN" ]; then echo -e "${RED}Error: 缺少 xray 核心。${PLAIN
 # 核心逻辑
 # =========================================================
 
-# 1. 列表展示
+# 1. 列表展示 (Admin 显示为 #, 用户从 1 开始)
 _print_list() {
     echo -e "${BLUE}>>> 当前用户列表 (User List)${PLAIN}"
-    echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
-    printf "${YELLOW}%-4s %-27s %-40s${PLAIN}\n" "ID" "备注 (Email)" "UUID"
-    echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
+    echo -e "${GRAY}------------------------------------------------------------------${PLAIN}"
+    printf "${YELLOW}%-5s %-25s %-40s${PLAIN}\n" "ID" "备注" "UUID"
+    echo -e "${GRAY}------------------------------------------------------------------${PLAIN}"
     
-    # 默认读取第一个入站作为主列表
-    jq -r '.inbounds[0].settings.clients[] | "\(.email // "无备注") \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
-        if [[ "$email" == "admin" || "$email" == "Admin" ]]; then
-            printf "${RED}%-4s %-25s %-40s${PLAIN}\n" "$idx" "$email" "$uuid"
+    # 使用 jq to_entries 获取真实索引 (key=0,1,2...)
+    jq -r '.inbounds[0].settings.clients | to_entries[] | "\(.key) \(.value.email // "无备注") \(.value.id)"' "$CONFIG_FILE" | while read idx email uuid; do
+        if [ "$idx" -eq 0 ]; then
+            # 索引 0 (管理员) -> 显示为红色的 #
+            printf "${RED}%-5s %-23s %-40s${PLAIN}\n" "#" "$email" "$uuid"
         else
-            printf "${GREEN}%-4s${PLAIN} %-25s %-40s\n" "$idx" "$email" "$uuid"
+            # 其他索引 -> 直接显示数字 (如 1, 2, 3...)
+            printf "${GREEN}%-5s${PLAIN} %-23s %-40s\n" "$idx" "$email" "$uuid"
         fi
     done
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
@@ -117,16 +119,20 @@ _show_connection_info() {
 # 3. 查看用户详情
 view_user_details() {
     _print_list
-    echo -e "${YELLOW}提示：输入序号可查看详细连接信息 (输入 0 或回车返回)${PLAIN}"
-    read -p "请输入序号: " idx
+    echo -e "${YELLOW}提示：输入序号(ID)查看详细连接信息${PLAIN} ${GREEN}[回车 或 0 返回]${PLAIN}"
+    read -p "序号(ID): " idx
     
     if [[ -z "$idx" || "$idx" == "0" ]]; then return; fi
     if ! [[ "$idx" =~ ^[0-9]+$ ]]; then echo -e "${RED}输入无效${PLAIN}"; return; fi
     
     local len=$(jq '.inbounds[0].settings.clients | length' "$CONFIG_FILE")
-    if [ "$idx" -lt 1 ] || [ "$idx" -gt "$len" ]; then echo -e "${RED}序号超出范围${PLAIN}"; return; fi
+    
+    # 范围检查：必须 >= 1 (因为 0 是 Admin #，且被用作返回键，故无法在此查看 Admin，需用 info 命令)
+    if [ "$idx" -lt 1 ] || [ "$idx" -ge "$len" ]; then
+        echo -e "${RED}序号超出范围${PLAIN}"; return; fi
 
-    local array_idx=$((idx - 1))
+    # 直接使用输入的 idx 作为数组索引，无需 -1
+    local array_idx=$idx
     local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email // \"无备注\"" "$CONFIG_FILE")
     local uuid=$(jq -r ".inbounds[0].settings.clients[$array_idx].id" "$CONFIG_FILE")
     
@@ -205,17 +211,49 @@ add_user() {
 # 6. 删除用户
 del_user() {
     _print_list
-    echo -e "${YELLOW}请输入要删除的用户 序号 (不是备注):${PLAIN}"
-    read -p "序号: " idx
-    
-    if ! [[ "$idx" =~ ^[0-9]+$ ]]; then echo -e "${RED}输入无效${PLAIN}"; return; fi
-    if [ "$idx" -eq 1 ]; then echo -e "${RED}错误：禁止删除管理员账户 (Admin)！${PLAIN}"; return; fi
     
     local len=$(jq '.inbounds[0].settings.clients | length' "$CONFIG_FILE")
-    if [ "$idx" -lt 1 ] || [ "$idx" -gt "$len" ]; then echo -e "${RED}序号超出范围${PLAIN}"; return; fi
-    if [ "$len" -le 1 ]; then echo -e "${RED}错误: 至少保留一个用户，无法清空！${PLAIN}"; return; fi
+    
+    # === 提前检测：如果只有管理员，直接提示并返回 ===
+    if [ "$len" -le 1 ]; then
+         echo -e "\n${YELLOW}提示：当前仅剩管理员 (#)，无可删除的用户。${PLAIN}"
+         read -n 1 -s -r -p "按任意键返回菜单..."
+         return
+    fi
 
-    local array_idx=$((idx - 1))
+    local idx=""
+
+    while true; do
+        echo -e "${YELLOW}提示：请输入要删除的用户序号(ID)${PLAIN} ${GREEN}[回车 或 0 返回]${PLAIN}"
+        read -p "序号(ID): " idx
+        
+        # 返回逻辑
+        if [[ -z "$idx" || "$idx" == "0" ]]; then return; fi
+
+        local error_msg=""
+        
+        # 校验逻辑
+        if ! [[ "$idx" =~ ^[0-9]+$ ]]; then 
+            error_msg="输入无效，请输入数字！"
+        # 范围校验 (1 到 len-1)
+        elif [ "$idx" -lt 1 ] || [ "$idx" -ge "$len" ]; then
+            local max_id=$((len - 1))
+            error_msg="序号无效 (不能删除 # 管理员，请输入 1-${max_id})！"
+        fi
+
+        # 错误处理 (防刷屏)
+        if [ -n "$error_msg" ]; then
+            echo -e "${RED}${error_msg}${PLAIN}"
+            sleep 1
+            echo -ne "\033[1A\033[K\033[1A\033[K\033[1A\033[K"
+            continue 
+        fi
+
+        break
+    done
+
+    # 执行删除
+    local array_idx=$idx
     local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email // \"无备注\"" "$CONFIG_FILE")
 
     echo -ne "确认删除用户: ${RED}$email${PLAIN} ? [y/n]: "
@@ -230,7 +268,6 @@ del_user() {
 
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
     tmp=$(mktemp)
-    # 从所有入站中删除该索引的用户
     jq "del(.inbounds[].settings.clients[$array_idx])" "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
     
     restart_service "用户已删除。"

@@ -63,7 +63,14 @@ restore_backup() {
     for file in "${files[@]}"; do
         filename=$(basename "$file")
         filetime=$(date -r "$file" "+%Y-%m-%d %H:%M:%S")
-        echo -e "  ${GREEN}$i.${PLAIN} $filename  ${YELLOW}($filetime)${PLAIN}"
+        
+        # 如果是第一个文件(最新)，添加绿色标签
+        local tag=""
+        if [ "$i" -eq 1 ]; then
+            tag="${GREEN}最新${PLAIN}"
+        fi
+        
+        echo -e "  ${GREEN}$i.${PLAIN} $filename  ${YELLOW}($filetime)${PLAIN} $tag"
         let i++
     done
     
@@ -82,7 +89,7 @@ restore_backup() {
         # 1. 预检备份文件完整性
         echo -e "正在校验备份文件..."
         
-        # 将 -conf 修改为 -c，目前 xray 版本只支持 -c
+        # 将 -conf 修改为 -c
         if ! XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -c "$target_file" >/dev/null 2>&1; then
             echo -e "${RED}错误：该备份文件校验失败，无法还原！${PLAIN}"
             echo -e "${YELLOW}>>> 错误详情 (Debug Info):${PLAIN}"
