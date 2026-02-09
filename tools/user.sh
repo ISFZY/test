@@ -14,20 +14,21 @@ CONFIG_FILE="/usr/local/etc/xray/config.json"
 XRAY_BIN="/usr/local/bin/xray"
 
 # 检查依赖
-if ! command -v jq &> /dev/null; then echo -e "${RED}错误: 缺少 jq 组件。${PLAIN}"; exit 1; fi
-if ! [ -f "$XRAY_BIN" ]; then echo -e "${RED}错误: 缺少 xray 核心文件。${PLAIN}"; exit 1; fi
+if ! command -v jq &> /dev/null; then echo -e "${RED}Error: 缺少 jq 组件。${PLAIN}"; exit 1; fi
+if ! [ -x "$XRAY_BIN" ]; then echo -e "${RED}Error: 缺少 xray 核心。${PLAIN}"; exit 1; fi
 
 # =========================================================
 # 核心逻辑
 # =========================================================
 
-# 1. 纯列表展示
+# 1. 列表展示
 _print_list() {
     echo -e "${BLUE}>>> 当前用户列表 (User List)${PLAIN}"
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
     printf "${YELLOW}%-4s %-25s %-40s${PLAIN}\n" "ID" "备注 (Email)" "UUID"
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
     
+    # 默认读取第一个入站作为主列表
     jq -r '.inbounds[0].settings.clients[] | "\(.email // "无备注") \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
         if [[ "$email" == "admin" || "$email" == "Admin" ]]; then
             printf "${RED}%-4s %-25s %-40s${PLAIN}\n" "$idx" "$email" "$uuid"
@@ -38,78 +39,79 @@ _print_list() {
     echo -e "${GRAY}-----------------------------------------------------------------------${PLAIN}"
 }
 
-# 2. 生成链接并显示
+# 2. 生成链接并显示 (复用 info.sh 逻辑)
 _show_connection_info() {
-    local uuid=$1
-    local email=$2
+    local target_uuid=$1
+    local target_email=$2
 
-    echo -e "\n${BLUE}>>> 正在获取网络连接信息 (IPv4 & IPv6)...${PLAIN}"
+    echo -e "\n${BLUE}>>> 正在获取连接信息...${PLAIN}"
+
+    # --- 1. 提取基础配置 (与 info.sh 保持一致) ---
+    # 提取密钥与 SNI (通常在第一个 inbound)
+    local PRIVATE_KEY=$(jq -r '.inbounds[0].streamSettings.realitySettings.privateKey' "$CONFIG_FILE")
+    local SHORT_ID=$(jq -r '.inbounds[0].streamSettings.realitySettings.shortIds[0]' "$CONFIG_FILE")
+    local SNI_HOST=$(jq -r '.inbounds[0].streamSettings.realitySettings.serverNames[0]' "$CONFIG_FILE")
     
-    # 1. 获取 IP
-    local ipv4=$(curl -s4m 1 https://ip.gs)
-    local ipv6=$(curl -s6m 1 https://ip.gs)
-    if [ -z "$ipv4" ] && [ -z "$ipv6" ]; then ipv4="YOUR_IP"; fi
+    # 按 tag 提取端口和路径 (确保精准)
+    local PORT_VISION=$(jq -r '.inbounds[] | select(.tag=="vision_node") | .port' "$CONFIG_FILE")
+    local PORT_XHTTP=$(jq -r '.inbounds[] | select(.tag=="xhttp_node") | .port' "$CONFIG_FILE")
+    local XHTTP_PATH=$(jq -r '.inbounds[] | select(.tag=="xhttp_node") | .streamSettings.xhttpSettings.path' "$CONFIG_FILE")
 
-    # 2. 遍历节点
-    local count=$(jq '.inbounds | length' "$CONFIG_FILE")
+    # 计算公钥
+    local PUBLIC_KEY=""
+    if [ -n "$PRIVATE_KEY" ]; then
+        local RAW_OUTPUT=$($XRAY_BIN x25519 -i "$PRIVATE_KEY")
+        # 兼容不同版本的 grep 输出
+        PUBLIC_KEY=$(echo "$RAW_OUTPUT" | grep -iE "Public|Password" | head -n 1 | awk -F':' '{print $2}' | tr -d ' \r\n')
+    fi
+    
+    if [ -z "$PUBLIC_KEY" ]; then 
+        echo -e "${RED}严重错误：无法计算公钥，请检查 config.json。${PLAIN}"
+        return
+    fi
 
-    for ((i=0; i<count; i++)); do
-        local protocol=$(jq -r ".inbounds[$i].protocol" "$CONFIG_FILE")
-        if [ "$protocol" != "vless" ]; then continue; fi
+    # --- 2. IP 检测 ---
+    local IPV4=$(curl -s4m 1 https://api.ipify.org || echo "N/A")
+    local IPV6=$(curl -s6m 1 https://api64.ipify.org || echo "N/A")
 
-        # 提取基础参数
-        local tag=$(jq -r ".inbounds[$i].tag // \"node_$i\"" "$CONFIG_FILE")
-        local port=$(jq -r ".inbounds[$i].port" "$CONFIG_FILE")
-        local type=$(jq -r ".inbounds[$i].streamSettings.network" "$CONFIG_FILE")
-        local sni=$(jq -r ".inbounds[$i].streamSettings.realitySettings.serverNames[0]" "$CONFIG_FILE")
-        local sid=$(jq -r ".inbounds[$i].streamSettings.realitySettings.shortIds[0]" "$CONFIG_FILE")
+    # --- 3. 生成并输出链接 ---
+    echo -e "\n${YELLOW}=== 用户 [${target_email}] 连接配置 ===${PLAIN}"
+
+    # >> IPv4 Links
+    if [[ "$IPV4" != "N/A" ]]; then
+        echo -e "${GREEN}[IPv4]${PLAIN} ${IPV4}"
         
-        # === 获取私钥与公钥 ===
-        # 尝试从当前节点读取私钥
-        local priv_key=$(jq -r ".inbounds[$i].streamSettings.realitySettings.privateKey // \"\"" "$CONFIG_FILE")
+        # Vision Link
+        if [ -n "$PORT_VISION" ]; then
+            local link="vless://${target_uuid}@${IPV4}:${PORT_VISION}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_Vision"
+            echo -e "Vision: ${GRAY}${link}${PLAIN}"
+        fi
         
-        # 如果当前节点没写私钥 (jq 返回空字符串)，则去第一个节点找 (通常 Reality 节点共用一个 key)
-        if [ -z "$priv_key" ]; then
-            priv_key=$(jq -r ".inbounds[0].streamSettings.realitySettings.privateKey" "$CONFIG_FILE")
-        fi
-
-        # 计算公钥 (强制使用绝对路径 xray，且 grep 忽略大小写)
-        local pbk=$($XRAY_BIN x25519 -i "$priv_key" | grep -i "Public" | awk '{print $3}')
-
-        # 校验 PBK 是否成功获取
-        if [ -z "$pbk" ]; then
-            echo -e "${RED}警告: 节点 $tag 无法获取 Public Key，请检查 config.json 中的 privateKey 是否正确。${PLAIN}"
-            pbk="MISSING_KEY"
-        fi
-        # ================================
-        
-        # 获取 flow
-        local flow=$(jq -r ".inbounds[$i].settings.clients[] | select(.id==\"$uuid\") | .flow // \"\"" "$CONFIG_FILE")
-        
-        # XHTTP path
-        local path=""
-        if [ "$type" == "xhttp" ]; then
-            path=$(jq -r ".inbounds[$i].streamSettings.xhttpSettings.path // \"\"" "$CONFIG_FILE")
-        fi
-
-        echo -e "${YELLOW}--- [节点: $tag ($type)] ---${PLAIN}"
-
-        # 生成 IPv4 链接
-        if [ -n "$ipv4" ]; then
-            local link4="vless://${uuid}@${ipv4}:${port}?security=reality&encryption=none&pbk=${pbk}&headerType=none&fp=chrome&type=${type}&flow=${flow}&sni=${sni}&sid=${sid}&path=${path}#${email}_v4"
-            echo -e "${GREEN}[IPv4]${PLAIN} ${ipv4}:${port}"
-            echo -e "链接: ${GRAY}${link4}${PLAIN}"
-        fi
-
-        # 生成 IPv6 链接
-        if [ -n "$ipv6" ]; then
-            if [ -n "$ipv4" ]; then echo -e "${GRAY}- - - - - - - - - - - - - - - - - - - -${PLAIN}"; fi
-            local link6="vless://${uuid}@[${ipv6}]:${port}?security=reality&encryption=none&pbk=${pbk}&headerType=none&fp=chrome&type=${type}&flow=${flow}&sni=${sni}&sid=${sid}&path=${path}#${email}_v6"
-            echo -e "${BLUE}[IPv6]${PLAIN} ${ipv6}:${port}"
-            echo -e "链接: ${GRAY}${link6}${PLAIN}"
+        # XHTTP Link
+        if [ -n "$PORT_XHTTP" ]; then
+            local link="vless://${target_uuid}@${IPV4}:${PORT_XHTTP}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=xhttp&path=${XHTTP_PATH}&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_XHTTP"
+            echo -e "XHTTP : ${GRAY}${link}${PLAIN}"
         fi
         echo ""
-    done
+    fi
+
+    # >> IPv6 Links
+    if [[ "$IPV6" != "N/A" ]]; then
+        echo -e "${BLUE}[IPv6]${PLAIN} ${IPV6}"
+        
+        # Vision Link
+        if [ -n "$PORT_VISION" ]; then
+            local link="vless://${target_uuid}@[${IPV6}]:${PORT_VISION}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_Vision_v6"
+            echo -e "Vision: ${GRAY}${link}${PLAIN}"
+        fi
+        
+        # XHTTP Link
+        if [ -n "$PORT_XHTTP" ]; then
+            local link="vless://${target_uuid}@[${IPV6}]:${PORT_XHTTP}?security=reality&encryption=none&pbk=${PUBLIC_KEY}&headerType=none&fp=chrome&type=xhttp&path=${XHTTP_PATH}&sni=${SNI_HOST}&sid=${SHORT_ID}#${target_email}_XHTTP_v6"
+            echo -e "XHTTP : ${GRAY}${link}${PLAIN}"
+        fi
+        echo ""
+    fi
 }
 
 # 3. 查看用户详情
@@ -128,7 +130,6 @@ view_user_details() {
     local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email // \"无备注\"" "$CONFIG_FILE")
     local uuid=$(jq -r ".inbounds[0].settings.clients[$array_idx].id" "$CONFIG_FILE")
     
-    echo -e "${GREEN}>>> 已选择用户: $email${PLAIN}"
     _show_connection_info "$uuid" "$email"
     
     read -n 1 -s -r -p "按任意键返回菜单..."
@@ -167,7 +168,7 @@ restart_service() {
     fi
 }
 
-# 5. 添加用户
+# 5. 添加用户 (全协议同步)
 add_user() {
     echo -e "${BLUE}>>> 添加新用户${PLAIN}"
     read -p "请输入用户备注 (例如: friend_bob): " email
@@ -180,6 +181,7 @@ add_user() {
     
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
 
+    # 全局添加 (同时写入 Vision 和 XHTTP 节点)
     tmp=$(mktemp)
     jq --arg uuid "$new_uuid" --arg email "$email" '
       .inbounds |= map(
@@ -228,6 +230,7 @@ del_user() {
 
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
     tmp=$(mktemp)
+    # 从所有入站中删除该索引的用户
     jq "del(.inbounds[].settings.clients[$array_idx])" "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
     
     restart_service "用户已删除。"
