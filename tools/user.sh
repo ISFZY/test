@@ -37,13 +37,13 @@ restart_service() {
     local success_msg=$1
     local backup_file="${CONFIG_FILE}.bak"
 
-    # [关键修复] 确保配置文件权限正确，否则 Xray 无法读取
+    # [关键修复] 确保配置文件权限正确
     chmod 644 "$CONFIG_FILE"
 
     echo -e "${BLUE}>>> 正在重启服务...${PLAIN}"
     systemctl restart xray
     
-    # [关键修复] 等待 2 秒，确保服务真正启动
+    # [关键修复] 等待 2 秒
     sleep 2
     
     # 检查状态
@@ -53,13 +53,13 @@ restart_service() {
     else
         echo -e "${RED}严重错误：Xray 服务启动失败！正在尝试回滚...${PLAIN}"
         
-        # 尝试输出具体的错误日志，帮助排查
+        # 尝试输出日志
         journalctl -u xray --no-pager -n 10 | tail -n 5
         
         if [ -f "$backup_file" ]; then
             echo -e "${YELLOW}>>> 正在触发自动回滚机制 (Auto Rollback)...${PLAIN}"
             cp "$backup_file" "$CONFIG_FILE"
-            chmod 644 "$CONFIG_FILE" # 回滚后也要修权限
+            chmod 644 "$CONFIG_FILE"
             systemctl restart xray
             
             if systemctl is-active --quiet xray; then
@@ -88,7 +88,6 @@ add_user() {
     fi
     
     local new_uuid=$(xray uuid)
-    # 获取第一个用户的 flow，如果是 Vision 协议则需要
     local flow=$(jq -r '.inbounds[0].settings.clients[0].flow // ""' "$CONFIG_FILE")
     
     echo -e "正在添加: ${GREEN}$email${PLAIN} (UUID: $new_uuid)"
@@ -109,7 +108,7 @@ add_user() {
     echo -e "Flow: $flow"
 }
 
-# 3. 删除用户
+# 3. 删除用户 (包含优化的交互逻辑)
 del_user() {
     list_users
     echo -e "${YELLOW}请输入要删除的用户 序号 (不是备注):${PLAIN}"
@@ -128,11 +127,26 @@ del_user() {
     local array_idx=$((idx - 1))
     local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email" "$CONFIG_FILE")
 
-    echo -e "确认删除用户: ${RED}$email${PLAIN} ? [y/n]"
-    read -p "" confirm
-    if [[ "$confirm" != "y" ]]; then return; fi
-    
-    echo -e "${BLUE}>>> 正在删除...${PLAIN}"
+    # === [优化开始] 交互式确认逻辑 ===
+    echo -ne "确认删除用户: ${RED}$email${PLAIN} ? [y/n]: "
+    while true; do
+        read -n 1 -r key # 读取单个字符，不回显
+        case "$key" in
+            [yY]) 
+                echo -e "\n${GREEN}>>> 已确认，正在删除...${PLAIN}"
+                break 
+                ;;
+            [nN]) 
+                echo -e "\n${YELLOW}>>> 操作已取消。${PLAIN}"
+                return 
+                ;;
+            *) 
+                # 无效输入时不换行，光标回退，实现“无反应”或“禁止输入”的效果
+                # 这里我们简单地不做任何响应，等待有效输入
+                ;;
+        esac
+    done
+    # === [优化结束] ===
 
     # 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
