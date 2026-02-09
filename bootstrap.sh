@@ -13,7 +13,7 @@ PLAIN='\033[0m'
 
 # 定义安装目录
 INSTALL_DIR="xray-install"
-REPO_URL="https://github.com/ISFZY/test.git"
+REPO_URL="https://github.com/ISFZY/Xray-Auto.git"
 
 # ==============================================================================
 # 1. 分支选择逻辑 (Branch Selection)

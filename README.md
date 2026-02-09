@@ -9,8 +9,6 @@
 
 本项目是一个高度模块化的 Shell 脚本，用于在 Linux 服务器上快速部署基于 **Xray** 核心的代理服务。支持最新的 **Vision** 和 **XHTTP** 协议，并集成了由 Reality 驱动的 SNI 伪装技术。
 
-
-
 ---
 
 ## ✨ 功能特性 (Features)
@@ -28,6 +26,7 @@
 * **架构**: amd64, arm64
 * **权限**: 需要 `root` 权限
 * **端口**: 默认占用 `443` (Vision) 和 `8443` (XHTTP)，安装过程中可自定义。
+* **客户端**: 请确保你的代理端支持该种协议（如 Shadowrocket, V2rayN...)
 
 ---
 
@@ -38,7 +37,7 @@
 使用 `root` 用户运行以下命令即可。引导脚本会自动安装 Git、克隆仓库并启动安装程序。
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
 
 ```
 
@@ -62,7 +61,7 @@ chmod +x install.sh
 ---
 ## 🗑️ 卸载 (Uninstall)
 
-如果你想彻底移除 Xray 及相关配置，请运行：
+如果你想彻底移除 Xray 及相关配置，请运行（或服务端输入`remove`）：
 
 ```bash
 bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/remove.sh)
@@ -75,7 +74,8 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/rem
 
 | 命令 | 功能 | 说明 |
 | :--- | :--- | :--- |
-| `info` | **主面板** | 查看节点链接、二维码、服务状态及快捷菜单。 |
+| `info` | **主面板（Admin）** | 查看节点链接、二维码、服务状态及快捷菜单。 |
+| `user` | **多用户管理（User）** | 查询、添加，删除用户。 |
 | `ports` | **端口管理** | 修改 SSH、Vision、XHTTP 端口并自动放行防火墙。 |
 | `net` | **网络策略** | 切换 IPv4/IPv6 优先策略，或强制单栈模式。 |
 | `xw` | **WARP 管理** | 安装 Cloudflare WARP 用于 Netflix/ChatGPT 分流。 |
@@ -84,6 +84,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/rem
 | `bt` | **审计管理** | 一键开启/关闭 BT 下载拦截和私有 IP 拦截。 |
 | `swap` | **内存管理** | 添加、删除 Swap 分区，调整 Swappiness 亲和度。 |
 | `f2b` | **Fail2ban** | 查看封禁 IP、解封 IP、调整封禁策略。 |
+| `backup` | **备份与恢复** | 查询、备份，恢复配置。 |
 | `remove` | **一键卸载** | 移除Xray及全部安装。 |
 ---
 
@@ -126,16 +127,8 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/rem
 ```
 ---
 
-## ⚠️ Disclaimer / 免责声明
+## ⚠️ 免责声明（Disclaimer）
 
-### 🇺🇸 English
-1.  **Educational Use Only**: This project is intended solely for **learning, technical research, and network testing**. It is not intended for any illegal activities.
-2.  **User Responsibility**: Users must comply with the laws and regulations of their local jurisdiction and the location of the server. The author assumes no responsibility for any legal consequences arising from the use of this script.
-3.  **No Warranty**: This software is provided "AS IS", without warranty of any kind, express or implied. The author disclaims all liability for any damages, data loss, or system instability resulting from its use.
-4.  **Third-Party Tools**: This script relies on third-party programs (e.g., Xray-core). The author is not responsible for the security, stability, or content of these external tools.
-5.  **GPL v3 License**: This project is licensed under the **GNU General Public License v3.0**. Please review the `LICENSE` file for full terms and conditions.
-
-### 🇨🇳 中文
 1.  **仅供科研与学习**: 本项目仅用于**网络技术研究、学习交流及系统测试**。请勿将本脚本用于任何违反国家法律法规的用途。
 2.  **法律合规**: 使用本脚本时，请务必遵守您所在国家/地区以及服务器所在地的法律法规。严禁用于涉及政治、宗教、色情、诈骗等非法内容的传播。一切因违规使用产生的法律后果，由使用者自行承担，作者不承担任何连带责任。
 3.  **无担保条款**: 本软件按“原样”提供，不提供任何形式的明示或暗示担保。作者不对因使用本脚本而导致的任何直接或间接损失（包括但不限于数据丢失、系统崩溃、IP 被封锁、服务器被服务商暂停等）负责。
