@@ -57,7 +57,8 @@ restore_backup() {
     fi
     
     echo -e "${BLUE}>>> 请选择要还原的备份点：${PLAIN}"
-    
+
+    echo -e "-------------------------------------------------"
     local i=1
     for file in "${files[@]}"; do
         filename=$(basename "$file")
