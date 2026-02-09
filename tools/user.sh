@@ -26,7 +26,8 @@ list_users() {
     printf "%-5s %-20s %-40s\n" "ID" "备注 (Email)" "UUID"
     echo -e "----------------------------------------------------------------"
     
-    jq -r '.inbounds[0].settings.clients[] | "\(.email) \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
+    # 注意：这里我们读取 email，如果没有 email (null) 则显示 '无备注'
+    jq -r '.inbounds[0].settings.clients[] | "\(.email // "无备注") \(.id)"' "$CONFIG_FILE" | nl -w 2 -s " " | while read idx email uuid; do
         printf "%-5s %-20s %-40s\n" "$idx" "$email" "$uuid"
     done
     echo -e "----------------------------------------------------------------"
@@ -108,13 +109,22 @@ add_user() {
     echo -e "Flow: $flow"
 }
 
-# 3. 删除用户 (包含优化的交互逻辑)
+# 3. 删除用户
 del_user() {
     list_users
     echo -e "${YELLOW}请输入要删除的用户 序号 (不是备注):${PLAIN}"
     read -p "序号: " idx
     
     if ! [[ "$idx" =~ ^[0-9]+$ ]]; then echo -e "${RED}输入无效${PLAIN}"; return; fi
+    
+    # ================= [管理员保护] ================
+    # 强制禁止删除序号为 1 的用户
+    if [ "$idx" -eq 1 ]; then
+        echo -e "${RED}错误：禁止删除管理员账户 (Admin)！${PLAIN}"
+        echo -e "${YELLOW}提示：管理员是配置的基石，如需修改请手动编辑 config.json${PLAIN}"
+        return
+    fi
+    # ==============================================
     
     local len=$(jq '.inbounds[0].settings.clients | length' "$CONFIG_FILE")
     
@@ -125,12 +135,12 @@ del_user() {
         echo -e "${RED}错误: 至少保留一个用户，无法清空！${PLAIN}"; return; fi
 
     local array_idx=$((idx - 1))
-    local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email" "$CONFIG_FILE")
+    local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email // \"无备注\"" "$CONFIG_FILE")
 
-    # === [优化开始] 交互式确认逻辑 ===
+    # 交互式确认
     echo -ne "确认删除用户: ${RED}$email${PLAIN} ? [y/n]: "
     while true; do
-        read -n 1 -r key # 读取单个字符，不回显
+        read -n 1 -r key
         case "$key" in
             [yY]) 
                 echo -e "\n${GREEN}>>> 已确认，正在删除...${PLAIN}"
@@ -140,13 +150,9 @@ del_user() {
                 echo -e "\n${YELLOW}>>> 操作已取消。${PLAIN}"
                 return 
                 ;;
-            *) 
-                # 无效输入时不换行，光标回退，实现“无反应”或“禁止输入”的效果
-                # 这里我们简单地不做任何响应，等待有效输入
-                ;;
+            *) ;;
         esac
     done
-    # === [优化结束] ===
 
     # 创建备份
     cp "$CONFIG_FILE" "${CONFIG_FILE}.bak"
