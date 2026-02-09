@@ -12,7 +12,7 @@ PLAIN="\033[0m"
 BACKUP_DIR="/usr/local/etc/xray/backup"
 CONFIG_FILE="/usr/local/etc/xray/config.json"
 XRAY_BIN="/usr/local/bin/xray"
-# 关键：指定资源文件(.dat)的存放路径，防止校验时找不到文件报错
+# 指定资源文件路径 (geoip.dat/geosite.dat)
 ASSET_DIR="/usr/local/share/xray"
 
 # 确保备份目录存在
@@ -31,7 +31,6 @@ create_backup() {
         return
     fi
 
-    # 生成时间戳文件名
     local timestamp=$(date "+%Y%m%d_%H%M%S")
     local backup_file="$BACKUP_DIR/config_$timestamp.json"
     
@@ -39,7 +38,7 @@ create_backup() {
     echo -e "${GREEN}备份成功！${PLAIN}"
     echo -e "备份文件: ${YELLOW}$backup_file${PLAIN}"
     
-    # 只保留最近 10 个备份，自动清理旧的
+    # 保留最近10份
     local count=$(ls -1 "$BACKUP_DIR"/config_*.json 2>/dev/null | wc -l)
     if [ "$count" -gt 10 ]; then
         echo -e "${YELLOW}清理旧备份 (保留最近10份)...${PLAIN}"
@@ -50,7 +49,6 @@ create_backup() {
 
 # 2. 还原备份
 restore_backup() {
-    # 获取备份列表
     local files=($(ls -t "$BACKUP_DIR"/config_*.json 2>/dev/null))
     
     if [ ${#files[@]} -eq 0 ]; then
@@ -83,12 +81,12 @@ restore_backup() {
         # 1. 预检备份文件完整性
         echo -e "正在校验备份文件..."
         
-        # 使用环境变量告诉 Xray 资源文件在哪里
-        if ! XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -conf "$target_file" >/dev/null 2>&1; then
+        # 将 -conf 修改为 -c，目前 xray 版本只支持 -c
+        if ! XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -c "$target_file" >/dev/null 2>&1; then
             echo -e "${RED}错误：该备份文件校验失败，无法还原！${PLAIN}"
             echo -e "${YELLOW}>>> 错误详情 (Debug Info):${PLAIN}"
-            # 再次运行以打印具体错误给用户看
-            XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -conf "$target_file"
+            # [修复点] 这里的调试输出也同步修改为 -c
+            XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -c "$target_file"
             return
         fi
 
@@ -98,14 +96,8 @@ restore_backup() {
             case "$key" in
                 [yY]) 
                     echo -e "\n${BLUE}>>> 正在还原...${PLAIN}"
-                    
-                    # 2. 覆盖配置
                     cp "$target_file" "$CONFIG_FILE"
-                    
-                    # 3. 修复权限
                     chmod 644 "$CONFIG_FILE"
-                    
-                    # 4. 重启服务
                     systemctl restart xray
                     sleep 1
                     
