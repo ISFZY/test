@@ -165,29 +165,30 @@ watch_traffic() {
     # 实时输出
 tail -f "$LOG_FILE" | awk '
 BEGIN {
-    # 1. 定义颜色变量
-    GRAY="\033[90m"; c_end="\033[0m"
+    # 1. 定义数据行的颜色变量
+    c_end="\033[0m"
     c_time="\033[36m"; c_src="\033[33m"; c_route="\033[35m"; c_dest="\033[32m"; c_user="\033[37m"
-    
-    # 2. 定义统一的格式字符串 (与下方 printf 保持一致)
-    # 注意：为了让表头也带颜色，我们在格式串中预留了颜色占位符
-    fmt = "%s%-19s%s %s%-22s%s %s%-25s%s %s%-60s%s %s%s%s\n"
 
-    # 3. 打印表头
-    printf(fmt, GRAY,"[时间]",c_end, GRAY,"[来源IP]",c_end, GRAY,"[路由路径]",c_end, GRAY,"[目标地址]",c_end, GRAY,"[用户]",c_end)
+    # 2. 定义统一的格式字符串
+    # 注意：这里我们给每一列固定的宽度
+    fmt = "%-17s %-20s %-25s %-60s %s\n"
+
+    # 3. 打印纯文本表头 
+    printf(fmt, "[时间]", "[来源IP]", "[路由路径]", "[目标地址]", "[用户]")
 }
 
-# 这里的逻辑保持不变，引用上面定义的 fmt 变量
+# 逻辑判断
 $5 == "accepted" {
     time = substr($2, 1, 13)
     route = $7 $8 $9
-    
+
+    # 4. 打印数据行
     printf(fmt, \
-        c_time, time, c_end, \
-        c_src, $4, c_end, \
-        c_route, route, c_end, \
-        c_dest, $6, c_end, \
-        c_user, $11, c_end)
+        c_time time c_end, \
+        c_src $4 c_end, \
+        c_route route c_end, \
+        c_dest $6 c_end, \
+        c_user $11 c_end)
 }'
 
 }
