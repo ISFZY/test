@@ -37,7 +37,7 @@
 使用 `root` 用户运行以下命令即可。引导脚本会自动安装 Git、克隆仓库并启动安装程序。
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
 
 ```
 
@@ -50,7 +50,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
 apt update && apt install -y git
 
 # 2. 克隆仓库
-git clone https://github.com/ISFZY/test.git xray-install
+git clone https://github.com/ISFZY/Xray-Auto.git xray-install
 
 # 3. 运行脚本
 cd xray-install
@@ -64,7 +64,7 @@ chmod +x install.sh
 如果你想彻底移除 Xray 及相关配置，请运行（或服务端输入`remove`）：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/remove.sh)
 
 ```
 ---
@@ -85,6 +85,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.s
 | `swap` | **内存管理** | 添加、删除 Swap 分区，调整 Swappiness 亲和度。 |
 | `f2b` | **Fail2ban** | 查看封禁 IP、解封 IP、调整封禁策略。 |
 | `backup` | **备份与恢复** | 查询、备份，恢复配置。 |
+| `sniff` | **流量嗅探** | 开启/关闭 流量嗅探及其日志。 |
 | `remove` | **一键卸载** | 移除Xray及全部安装。 |
 ---
 
