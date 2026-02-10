@@ -163,34 +163,33 @@ watch_traffic() {
     echo -e "正在监听: ${YELLOW}$LOG_FILE${PLAIN}"
     
     # 实时输出
-    # 打印表头说明
-    echo -e "${GRAY}格式: [时间] [来源IP] [路由路径] [目标地址] [用户]${PLAIN}"
+tail -f "$LOG_FILE" | awk '
+BEGIN {
+    # 1. 定义颜色变量
+    GRAY="\033[90m"; c_end="\033[0m"
+    c_time="\033[36m"; c_src="\033[33m"; c_route="\033[35m"; c_dest="\033[32m"; c_user="\033[37m"
     
-    # 使用 awk 进行实时列对齐和着色
-    tail -f "$LOG_FILE" | awk '{
-        # 只处理连接成功 (accepted) 的日志，忽略错误信息以免破坏格式
-        if ($5 == "accepted") {
-            # 定义颜色变量
-            c_time="\033[36m"; c_src="\033[33m"; c_route="\033[35m"; c_dest="\033[32m"; c_user="\033[37m"; c_end="\033[0m"
-            
-            # 1. 处理时间：截取 $2 的前12位 (HH:MM:SS.mmm)，去掉后面过长的微秒
-            time = substr($2, 1, 12)
-            
-            # 2. 处理路由：把 $7 $8 $9 ([vision >> direct]) 拼接在一起
-            route = $7$8$9
-            
-            # 3. 格式化输出
-            # %-12s 表示左对齐，占用12个字符宽度
-            # %-22s 表示左对齐，占用22个字符宽度 (预留给IP)
-            # 以此类推...
-            printf "%s%-12s%s %s%-22s%s %s%-25s%s %s%-60s%s %s%s%s\n", \
-                c_time, time, c_end, \
-                c_src,  $4,   c_end, \
-                c_route, route, c_end, \
-                c_dest, $6,   c_end, \
-                c_user, $11,  c_end
-        }
-    }'
+    # 2. 定义统一的格式字符串 (与下方 printf 保持一致)
+    # 注意：为了让表头也带颜色，我们在格式串中预留了颜色占位符
+    fmt = "%s%-19s%s %s%-22s%s %s%-25s%s %s%-60s%s %s%s%s\n"
+
+    # 3. 打印表头
+    printf(fmt, GRAY,"[时间]",c_end, GRAY,"[来源IP]",c_end, GRAY,"[路由路径]",c_end, GRAY,"[目标地址]",c_end, GRAY,"[用户]",c_end)
+}
+
+# 这里的逻辑保持不变，引用上面定义的 fmt 变量
+$5 == "accepted" {
+    time = substr($2, 1, 13)
+    route = $7 $8 $9
+    
+    printf(fmt, \
+        c_time, time, c_end, \
+        c_src, $4, c_end, \
+        c_route, route, c_end, \
+        c_dest, $6, c_end, \
+        c_user, $11, c_end)
+}'
+
 }
 
 # =========================================================
@@ -210,7 +209,7 @@ while true; do
     echo -e "  3. 开启 访问日志 (Access Log)"
     echo -e "  4. 关闭 访问日志"
     echo -e "-------------------------------------------------"
-    echo -e "  5. ${YELLOW}>> 进入实时流量审计模式 (Watch Log)${PLAIN}"
+    echo -e "  5. ${YELLOW}进入实时流量审计模式 (Watch Log)${PLAIN}"
     echo -e "-------------------------------------------------"
     echo -e "  0. 退出"
     echo -e ""
