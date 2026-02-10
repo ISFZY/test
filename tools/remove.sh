@@ -26,10 +26,9 @@ echo -e "${RED}=============================================================${PL
 echo -e "${YELLOW}警告：此操作将执行以下清理：${PLAIN}"
 echo -e "  1. 停止并移除 Xray 服务"
 echo -e "  2. 删除 Xray 核心文件、配置文件、日志"
-echo -e "  3. 删除所有管理脚本 (info, net...)"
-echo -e "  4. 清理残留的安装目录"
+echo -e "  3. 删除所有管理脚本 (info, net, sniff, user, backup...)"
+echo -e "  4. 清理定时更新任务与系统配置残留"
 echo -e "${RED}=============================================================${PLAIN}"
-echo ""
 echo ""
 echo -ne "确认要彻底卸载吗？[y/n]: "
 while true; do
@@ -74,13 +73,13 @@ fi
 
 rm -rf /usr/local/share/xray
 rm -rf /var/log/xray
+echo -e "   [OK] 已删除日志目录 (/var/log/xray)"
 
 # 5. 删除工具脚本
-# 这一步非常关键，确保把 /usr/local/bin 下的快捷命令清理干净
 TOOLS=(
     "user"      # 多用户管理
     "backup"    # 备份与还原
-	"sniff"     # 流量嗅探
+    "sniff"     # 流量嗅探
     "info"      # 信息查看
     "net"       # 网络管理
     "bbr"       # BBR 管理
@@ -102,12 +101,24 @@ for tool in "${TOOLS[@]}"; do
     fi
 done
 
+# 清理定时任务 (Crontab)
+if command -v crontab &>/dev/null; then
+    # 移除包含 geoip.dat 或 geosite.dat 的行，保留其他任务
+    crontab -l 2>/dev/null | grep -v "geoip.dat" | grep -v "geosite.dat" | crontab -
+    echo -e "   [OK] 已清理 GeoData 自动更新任务"
+fi
+
+# [新增] 清理系统配置残留
+if [ -f "/etc/needrestart/conf.d/99-xray-auto.conf" ]; then
+    rm -f "/etc/needrestart/conf.d/99-xray-auto.conf"
+    echo -e "   [OK] 已删除 needrestart 静默配置"
+fi
+
 # 6. 重载系统守护进程
 systemctl daemon-reload
 systemctl reset-failed
 
-# 7. (可选) 清理安装源码目录
-# 尝试删除标准的安装路径 /root/xray-install
+# 7. 清理安装源码目录
 if [ -d "/root/xray-install" ]; then
     rm -rf "/root/xray-install"
     echo -e "   [OK] 已删除安装源码目录"
