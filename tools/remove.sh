@@ -81,6 +81,7 @@ TOOLS=(
     "backup"    # 备份与还原
     "sniff"     # 流量嗅探
     "info"      # 信息查看
+	"zone"      # 时区管理
     "net"       # 网络管理
     "bbr"       # BBR 管理
     "bt"        # BT 流量
