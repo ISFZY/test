@@ -75,11 +75,12 @@ fi
 rm -rf /usr/local/share/xray
 rm -rf /var/log/xray
 
-# 5. 删除工具脚本 (新增 user 和 backup)
+# 5. 删除工具脚本
 # 这一步非常关键，确保把 /usr/local/bin 下的快捷命令清理干净
 TOOLS=(
     "user"      # 多用户管理
     "backup"    # 备份与还原
+	"sniff"     # 流量嗅探
     "info"      # 信息查看
     "net"       # 网络管理
     "bbr"       # BBR 管理
