@@ -88,67 +88,55 @@ toggle_service() {
 unban_ip() {
     echo -e "\n${BLUE}--- 手动解封 IP (Unban Manager) ---${PLAIN}"
     
-    # 1. 获取封禁列表字符串
+    # 1. 获取并处理列表
     local raw_list=$(fail2ban-client status sshd 2>/dev/null | grep "Banned IP list" | awk -F':' '{print $2}')
-    
-    # 2. 转为数组 (自动按空格分割)
-    # read -r -a 将字符串读入数组 ip_array
     IFS=' ' read -r -a ip_array <<< "$raw_list"
     
-    # 3. 判空处理
+    # 2. 判空
     if [ ${#ip_array[@]} -eq 0 ]; then
         echo -e "${YELLOW}当前没有被封禁的 IP (列表为空)。${PLAIN}"
         read -n 1 -s -r -p "按任意键返回..."
         return
     fi
 
-    # 4. 打印表头
-    echo -e "${GRAY}--------------------------------------${PLAIN}"
-    # %-6s 表示左对齐占6位，确保竖线对齐
-    printf "${YELLOW}%-6s %-20s${PLAIN}\n" "ID" "IP Address"
-    echo -e "${GRAY}--------------------------------------${PLAIN}"
+    # 3. 打印表头
+    # %-8s  : ID 列占 8 个字符宽度，左对齐
+    # %-20s : IP 列占 20 个字符宽度，左对齐
+    echo -e "${GRAY}------------------------------${PLAIN}"
+    printf "${YELLOW}%-8s %-20s${PLAIN}\n" "ID" "IP Address"
+    echo -e "${GRAY}------------------------------${PLAIN}"
 
-    # 5. 循环打印数据
+    # 4. 打印数据
     local i=1
     for ip in "${ip_array[@]}"; do
-        # ID 用绿色，IP 用白色
-        printf "${GREEN}%-6s${PLAIN} %-20s\n" "$i" "$ip"
+        # 必须使用和表头完全一致的宽度参数 (8 和 20)
+        printf "${GREEN}%-8s${PLAIN} %-20s\n" "$i" "$ip"
         ((i++))
     done
-    echo -e "${GRAY}--------------------------------------${PLAIN}"
+    echo -e "${GRAY}------------------------------${PLAIN}"
     
-    # 6. 交互逻辑 (支持输入 ID 或 IP)
+    # 5. 交互
     echo -e "${YELLOW}提示：输入序号(ID) 快速解封，或直接输入 IP${PLAIN}"
     read -p "请输入 [ID/IP] (留空取消): " input
     
     if [ -z "$input" ]; then return; fi
     
     local target_ip=""
-    
-    # 判断输入是否为纯数字 (即 ID)
     if [[ "$input" =~ ^[0-9]+$ ]]; then
-        # 检查 ID 范围
         if [ "$input" -ge 1 ] && [ "$input" -le "${#ip_array[@]}" ]; then
-            # 数组下标是从0开始的，所以要 -1
             target_ip="${ip_array[$((input-1))]}"
         else
             echo -e "${RED}错误：ID $input 超出范围！${PLAIN}"
             read -n 1 -s -r -p "按任意键继续..."; return
         fi
     else
-        # 如果不是数字，假设用户手动输入了 IP
         target_ip="$input"
     fi
     
-    # 7. 执行解封
     echo -e "${INFO} 正在解封: ${GREEN}${target_ip}${PLAIN} ..."
     fail2ban-client set sshd unbanip "$target_ip"
     
-    if [ $? -eq 0 ]; then
-        echo -e "${OK} 解封成功！"
-    else
-        echo -e "${ERR} 操作失败 (可能该 IP 未被封禁或格式错误)。"
-    fi
+    if [ $? -eq 0 ]; then echo -e "${OK} 解封成功！"; else echo -e "${ERR} 操作失败。"; fi
     
     read -n 1 -s -r -p "按任意键继续..."
 }
