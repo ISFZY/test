@@ -3,16 +3,14 @@
 
 echo -e "\n${BLUE}--- 2. 开始安装核心组件 (Core Install) ---${PLAIN}"
 
-# [兼容性保障] 本地 fallback 定义也同步更新对齐逻辑
+# 兼容性保障
 if ! command -v execute_task >/dev/null 2>&1; then
     execute_task() {
         local cmd="$1"
         local desc="$2"
         echo -e "${INFO} 正在执行: $desc ..."
         if eval "$cmd" >/dev/null 2>&1; then
-            # OK 变量本身不含空格时，这里手动补齐 (兼容独立运行模式)
-            # 但如果通过 main 运行，会使用 utils.sh 的带空格版本
-            # 为了一致性，这里假设独立运行时手动补位
+
             echo -e "${GREEN}[OK]  ${PLAIN} ${desc} 成功"
         else
             echo -e "${RED}[ERR] ${PLAIN} ${desc} 失败"
@@ -37,23 +35,18 @@ DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptable
 echo -e "${INFO} 正在检查并安装系统依赖..."
 for pkg in "${DEPENDENCIES[@]}"; do
     if dpkg -s "$pkg" &>/dev/null; then
-        # [核心修正]
-        # 1. 左侧: ${OK} 在 utils.sh 里已包含2个补位空格，这里只用1个空格即可对齐 [INFO]
-        # 2. 右侧: "依赖已就绪" 是5个字，不需要补空格
+
         echo -e "${OK} 依赖已就绪: $pkg"
         continue
     fi
 
-    # [核心修正]
-    # 1. 左侧: 这里的 execute_task 内部会自动调用带空格的 ${OK}
-    # 2. 右侧: "安装依赖" 是4个字，比5字少1个字(2空格宽度)，补2个空格以对齐冒号
     execute_task "apt-get install -y $pkg" "安装依赖  : $pkg"
     
     # 二次校验与修复
     if ! dpkg -s "$pkg" &>/dev/null; then
         echo -e "${WARN} 依赖 $pkg 安装校验失败！尝试修复源..."
         apt-get update -qq --fix-missing
-        # 同理，"重试安装" 补2个空格
+
         execute_task "apt-get install -y $pkg" "重试安装  : $pkg"
         
         if ! dpkg -s "$pkg" &>/dev/null; then
@@ -86,7 +79,7 @@ install_xray_robust() {
         if execute_task "$install_cmd" "$desc"; then
             if [ -f "$bin_path" ] && "$bin_path" version &>/dev/null; then
                 local ver=$("$bin_path" version | head -n 1 | awk '{print $2}')
-                # 这里的 ${OK} 也会自动对齐
+
                 echo -e "${OK} Xray 核心校验通过: ${GREEN}${ver}${PLAIN}"
                 return 0
             fi

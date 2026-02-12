@@ -12,7 +12,7 @@ core_config() {
 
     # 2. 默认伪装域名 (SNI)
     SNI_HOST="www.icloud.com"
-    echo -e "${OK}   使用伪装域名: ${GREEN}${SNI_HOST}${PLAIN}"
+    echo -e "${OK} 使用伪装域名: ${GREEN}${SNI_HOST}${PLAIN}"
 
     # 3. 准备目录与核心
     mkdir -p /usr/local/etc/xray
@@ -115,5 +115,5 @@ EOF
     # 重载 systemd 配置
     systemctl daemon-reload >/dev/null 2>&1
 
-    echo -e "${OK}   Xray 配置文件生成完毕。"
+    echo -e "${OK} Xray 配置文件生成完毕。"
 }

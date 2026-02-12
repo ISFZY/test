@@ -23,7 +23,7 @@ check_sys_arch() {
             ;;
     esac
     
-    echo -e "${OK}   ${desc}: Debian/Ubuntu (${ARCH})"
+    echo -e "${OK} ${desc}: Debian/Ubuntu (${ARCH})"
 }
 
 pre_flight_check() {
@@ -113,7 +113,7 @@ pre_flight_check() {
         apt-get install -y -qq curl wget ca-certificates >/dev/null 2>&1
     fi
     
-    echo -e "${OK}   ${desc}"
+    echo -e "${OK} ${desc}"
 }
 
 check_net_stack() {
@@ -140,7 +140,7 @@ check_net_stack() {
         exit 1
     fi
     
-    echo -e "${OK}   网络检测: ${GREEN}${NET_TYPE}${PLAIN}"
+    echo -e "${OK} 网络检测: ${GREEN}${NET_TYPE}${PLAIN}"
 }
 
 setup_timezone() {
@@ -159,6 +159,6 @@ setup_timezone() {
         current_tz="UTC (Default)"
     fi
     
-    echo -e "${OK}   当前时区: ${YELLOW}${current_tz}${PLAIN}"
+    echo -e "${OK} 当前时区: ${YELLOW}${current_tz}${PLAIN}"
     echo -e "${INFO} (如需修改时区，安装后请输入 'zone')"
 }

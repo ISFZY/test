@@ -53,9 +53,9 @@ setup_firewall_and_security() {
         fi
     done
 
-    echo -e "${OK}   SSH    端口 : ${GREEN}$SSH_PORT${PLAIN}"
-    echo -e "${OK}   Vision 端口 : ${GREEN}$PORT_VISION${PLAIN} (随机/Random)"
-    echo -e "${OK}   XHTTP  端口 : ${GREEN}$PORT_XHTTP${PLAIN} (随机/Random)"
+    echo -e "${OK} SSH    端口 : ${GREEN}$SSH_PORT${PLAIN}"
+    echo -e "${OK} Vision 端口 : ${GREEN}$PORT_VISION${PLAIN} (随机/Random)"
+    echo -e "${OK} XHTTP  端口 : ${GREEN}$PORT_XHTTP${PLAIN} (随机/Random)"
     echo -e "${INFO} (请务必记录以上端口信息)"
 
     # 3. 写入 Fail2ban 初始配置
@@ -86,7 +86,7 @@ EOF
     systemctl unmask fail2ban >/dev/null 2>&1
     systemctl enable fail2ban >/dev/null 2>&1
     systemctl restart fail2ban >/dev/null 2>&1
-    echo -e "${OK}   Fail2ban 已启用 (默认策略: 指数递增封禁)"
+    echo -e "${OK} Fail2ban 已启用 (默认策略: 指数递增封禁)"
 
     # 4. 防火墙放行 (应用随机端口)
     _add_fw_rule $SSH_PORT $HAS_V4 $HAS_V6
@@ -95,7 +95,7 @@ EOF
     
     # 5. 持久化防火墙规则
     netfilter-persistent save >/dev/null 2>&1
-    echo -e "${OK}   防火墙规则已持久化保存"
+    echo -e "${OK} 防火墙规则已持久化保存"
 }
 
 setup_kernel_optimization() {
@@ -107,5 +107,5 @@ setup_kernel_optimization() {
     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.d/99-xray-bbr.conf
     # 应用配置
     sysctl --system >/dev/null 2>&1
-    echo -e "${OK}   BBR 加速已启用"
+    echo -e "${OK} BBR 加速已启用"
 }
