@@ -203,8 +203,6 @@ add_whitelist() {
 
 # 6. 查看日志
 view_logs() {
-    # 1. 定义临时文件路径
-    local tmp_file="/tmp/f2b_view.tmp"
     local log_file="/var/log/fail2ban.log"
     
     if [ ! -f "$log_file" ]; then
@@ -214,50 +212,41 @@ view_logs() {
         return
     fi
 
-    echo -e "${BLUE}>>> 正在加载日志...${PLAIN}"
-
-    # 2. 生成带提示的临时文件
-    {
-        # === 顶部表头 ===
-        echo -e "${BLUE}=================================================================${PLAIN}"
-        echo -e "${BLUE}           Fail2ban 封禁/解封日志 (Audit Log)                     ${PLAIN}"
-        echo -e "${BLUE}=================================================================${PLAIN}"
-        printf "${GRAY}%-20s %-12s %-16s %s${PLAIN}\n" "[Date / Time]" "[Jail]" "[IP Address]" "[Action]"
-        echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
-
-        # === 中间日志内容 ===
-        grep -E "(Ban|Unban)" "$log_file" 2>/dev/null | awk '{
-            dt = $1 " " substr($2, 1, 8);
-            jail = ""; action = ""; ip = "";
-            for(i=3; i<=NF; i++) {
-                if ($i ~ /^\[.*\]$/) jail = $i;
-                if ($i == "Ban" || $i == "Unban") { 
-                    action = $i; ip = $(i+1); break; 
-                }
-                if ($i == "Restore" && $(i+1) == "Ban") { 
-                    action = "ResBan"; ip = $(i+2); break; 
-                }
-            }
-            
-            if (action == "Ban") act_str = "\033[31m" action "\033[0m";
-            else if (action == "Unban") act_str = "\033[32m" action "\033[0m";
-            else act_str = "\033[33m" action "\033[0m";
-
-            if (jail != "" && ip != "") {
-                printf "%-20s %-12s %-16s %s\n", dt, jail, ip, act_str
-            }
-        }'
-        
-        echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
-        echo -e "${YELLOW}>>> 日志结束 (按 'q' 退出, '/' 搜索, 'PgUp' 翻页) <<<${PLAIN}"
-        
-    } > "$tmp_file"
-
-    # 3. 打开 (自动跳转到底部)
-    less -R +G "$tmp_file"
+    clear
+    echo -e "${BLUE}=================================================================${PLAIN}"
+    echo -e "${BLUE}           Fail2ban Audit Log (Last 20 Events)                   ${PLAIN}"
+    echo -e "${BLUE}=================================================================${PLAIN}"
     
-    # 4. 清理
-    rm -f "$tmp_file"
+    # === 表头 ===
+    printf "${GRAY}%-20s %-12s %-16s %s${PLAIN}\n" "[Date / Time]" "[Jail]" "[IP Address]" "[Action]"
+    echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
+
+    # === 内容处理 ===
+    grep -E "(Ban|Unban)" "$log_file" 2>/dev/null | tail -n 20 | awk '{
+        dt = $1 " " substr($2, 1, 8);
+        jail = ""; action = ""; ip = "";
+        for(i=3; i<=NF; i++) {
+            if ($i ~ /^\[.*\]$/) jail = $i;
+            if ($i == "Ban" || $i == "Unban") { 
+                action = $i; ip = $(i+1); break; 
+            }
+            if ($i == "Restore" && $(i+1) == "Ban") { 
+                action = "ResBan"; ip = $(i+2); break; 
+            }
+        }
+        
+        if (action == "Ban") act_str = "\033[31m" action "\033[0m";
+        else if (action == "Unban") act_str = "\033[32m" action "\033[0m";
+        else act_str = "\033[33m" action "\033[0m";
+
+        if (jail != "" && ip != "") {
+            printf "%-20s %-12s %-16s %s\n", dt, jail, ip, act_str
+        }
+    }'
+    
+    echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
+    
+    read -n 1 -s -r -p "按任意键返回主菜单..."
 }
 
 menu_exponential() {
