@@ -213,58 +213,55 @@ add_whitelist() {
     restart_f2b
 }
 
+# 6. 查看日志
 view_logs() {
-    clear
-    echo -e "${BLUE}=== 系统封禁/解封历史 (Audit Log) ===${PLAIN}"
-    echo -e "日志来源: ${GRAY}/var/log/fail2ban.log${PLAIN}"
-    echo -e "---------------------------------------------------"
-
-    if [ ! -f /var/log/fail2ban.log ]; then
-        echo -e "${YELLOW}暂无日志文件 (服务可能刚安装)。${PLAIN}"
-    else
-        
-        grep -E "(Ban|Unban)" /var/log/fail2ban.log 2>/dev/null | tail -n 20 | \
-awk '{
-    # 1. 颜色高亮 (先上色，让变量里带着颜色代码)
-    gsub(/Unban/, "\033[32m&\033[0m");
-    gsub(/Ban/, "\033[31m&\033[0m");
-
-    # 2. PID 对齐
-    if ($4 ~ /^\[.*\]:$/) {
-        $4 = sprintf("%9s", $4);
-    }
-
-    # 3. 日志格式: ... [sshd] Action IP
-    # [sshd] 是第6列, Action 是第7列(可能还有第8列), IP 在最后
-    
-    if ($7 == "Restore") {
-        # 情况 A: Restore Ban <IP>
-        # $7="Restore", $8="Ban", $9=IP
-        action = $7 " " $8;  # 组合动作词
-        ip = $9;
-        
-        # 交换位置：第7列放IP (左对齐15字符宽), 第8列放动作, 第9列清空
-        $7 = sprintf("%-15s", ip);
-        $8 = action;
-        $9 = ""; 
-    } else {
-        # 情况 B: Ban <IP> 或 Unban <IP>
-        # $7=Action, $8=IP
-        action = $7;
-        ip = $8;
-        
-        # 交换位置：第7列放IP, 第8列放动作
-        $7 = sprintf("%-15s", ip);
-        $8 = action;
-    }
-
-    # 4. 打印
-    print
-}'
+    # 检查日志文件是否存在
+    local log_file="/var/log/fail2ban.log"
+    if [ ! -f "$log_file" ]; then
+        clear
+        echo -e "${YELLOW}Log file not found ($log_file).${PLAIN}"
+        read -n 1 -s -r -p "Press any key to return..."
+        return
     fi
-    
-    echo -e "---------------------------------------------------"
-    read -n 1 -s -r -p "按任意键退出..."
+
+    # 使用 { ... } 将表头和内容组合，统一传给 less 进行分页显示
+    {
+        echo -e "${BLUE}=================================================${PLAIN}"
+        echo -e "${BLUE}           Fail2ban 封禁/解封日志 (Audit Log)     ${PLAIN}"
+        echo -e "${BLUE}=================================================${PLAIN}"
+        
+        # 表头
+        printf "${GRAY}%-20s %-12s %-16s %s${PLAIN}\n" "[Date / Time]" "[Jail]" "[IP Address]" "[Action]"
+        echo -e "${GRAY}-----------------------------------------------------------${PLAIN}"
+
+        # 核心处理逻辑
+        grep -E "(Ban|Unban)" "$log_file" 2>/dev/null | awk '{
+            # 1. 提取时间 (去除毫秒)
+            dt = $1 " " substr($2, 1, 8);
+            
+            # 2. 智能提取字段
+            jail = ""; action = ""; ip = "";
+            for(i=3; i<=NF; i++) {
+                if ($i ~ /^\[.*\]$/) jail = $i;
+                if ($i == "Ban" || $i == "Unban") { 
+                    action = $i; ip = $(i+1); break; 
+                }
+                if ($i == "Restore" && $(i+1) == "Ban") { 
+                    action = "ResBan"; ip = $(i+2); break; 
+                }
+            }
+            
+            # 3. 颜色处理
+            if (action == "Ban") act_str = "\033[31m" action "\033[0m";
+            else if (action == "Unban") act_str = "\033[32m" action "\033[0m";
+            else act_str = "\033[33m" action "\033[0m";
+
+            # 4. 打印
+            if (jail != "" && ip != "") {
+                printf "%-20s %-12s %-16s %s\n", dt, jail, ip, act_str
+            }
+        }'
+    } | less -R
 }
 
 menu_exponential() {
