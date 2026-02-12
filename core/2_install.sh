@@ -38,7 +38,7 @@ for pkg in "${DEPENDENCIES[@]}"; do
         continue
     fi
 
-    execute_task "apt-get install -y $pkg" "  安装依赖: $pkg"
+    execute_task "apt-get install -y $pkg" "  安装依赖  : $pkg"
     
     # 二次校验与修复
     if ! dpkg -s "$pkg" &>/dev/null; then
@@ -136,4 +136,4 @@ install_geodata_robust() {
 
 install_geodata_robust
 
-echo -e "${OK}   核心组件安装完毕 (Core Install Completed)。\n"
+echo -e "${INFO}   核心组件安装完毕 (Core Install Completed)。\n"
