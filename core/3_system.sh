@@ -1,4 +1,20 @@
 # --- 3. 安全与防火墙配置 ---
+
+# [辅助函数] 获取一个未被占用的随机高位端口 (10000-65535)
+get_random_port() {
+    local port
+    while true; do
+        # 生成 10000 到 65535 之间的随机数
+        port=$(shuf -i 10000-65535 -n 1)
+        
+        # 使用 lsof 检查端口是否被占用
+        if ! lsof -i:$port -P -n >/dev/null 2>&1; then
+            echo "$port"
+            return 0
+        fi
+    done
+}
+
 _add_fw_rule() {
     local port=$1; local v4=$2; local v6=$3
     if [ "$v4" = true ]; then
@@ -18,65 +34,78 @@ setup_firewall_and_security() {
     local current_ssh_port=$(grep "^Port" /etc/ssh/sshd_config | head -n 1 | awk '{print $2}' | tr -d '\r')
     SSH_PORT=${current_ssh_port:-22}
     
-    # 2. 设定默认端口 (静默模式)
-    PORT_VISION=443
-    PORT_XHTTP=8443
+    # 2. 分配随机高位端口
+    echo -e "${INFO} 正在分配随机高位端口..."
     
-    # [冲突检测] 如果 443 端口被占用 (如 Nginx)，自动切换到 4443
-    if lsof -i:443 -P -n | grep -q LISTEN; then
-        echo -e "${WARN} 检测到 443 端口被占用，Vision 端口自动切换为 4443"
-        PORT_VISION=4443
-    fi
+    # 分配 Vision 端口 (显式避开 SSH 端口)
+    while true; do
+        PORT_VISION=$(get_random_port)
+        if [ "$PORT_VISION" != "$SSH_PORT" ]; then
+            break
+        fi
+    done
+    
+    # 分配 XHTTP 端口 (显式避开 SSH 和 Vision 端口)
+    while true; do
+        PORT_XHTTP=$(get_random_port)
+        if [ "$PORT_XHTTP" != "$PORT_VISION" ] && [ "$PORT_XHTTP" != "$SSH_PORT" ]; then
+            break
+        fi
+    done
 
     echo -e "${OK}   SSH    端口 : ${GREEN}$SSH_PORT${PLAIN}"
-    echo -e "${OK}   Vision 端口 : ${GREEN}$PORT_VISION${PLAIN}"
-    echo -e "${OK}   XHTTP  端口 : ${GREEN}$PORT_XHTTP${PLAIN}"
-    echo -e "${INFO} (如需修改端口，安装后请输入 'ports')"
+    echo -e "${OK}   Vision 端口 : ${GREEN}$PORT_VISION${PLAIN} (随机/Random)"
+    echo -e "${OK}   XHTTP  端口 : ${GREEN}$PORT_XHTTP${PLAIN} (随机/Random)"
+    echo -e "${INFO} (请务必记录以上端口信息)"
 
-    # Fail2ban 配置
+    # 3. 写入 Fail2ban 初始配置
+    # 确保 f2b.sh 面板打开时能读到正确的默认参数 (指数封禁 + 随机端口应用)
     cat > /etc/fail2ban/jail.local <<EOF
 [DEFAULT]
+# --- 基础设置 ---
 ignoreip = 127.0.0.1/8 ::1
 bantime = 1d
+findtime = 1d
 maxretry = 3
-[DEFAULT]
-findtime = 7d
-backend = auto
+
+# --- 指数封禁设置 (默认开启) ---
+bantime.increment = true
+bantime.factor = 1
+bantime.maxtime = 5w
+
+# --- 系统设置 ---
+backend = systemd
+mode = normal
+
 [sshd]
 enabled = true
 port = $SSH_PORT
-mode = normal
 EOF
-    systemctl restart rsyslog >/dev/null 2>&1
+
+    # 重启 Fail2ban 服务
+    systemctl unmask fail2ban >/dev/null 2>&1
     systemctl enable fail2ban >/dev/null 2>&1
     systemctl restart fail2ban >/dev/null 2>&1
-    echo -e "${OK}   Fail2ban 防护已启用"
+    echo -e "${OK}   Fail2ban 已启用 (默认策略: 指数递增封禁)"
 
-    # 防火墙规则
+    # 4. 防火墙放行 (应用随机端口)
     _add_fw_rule $SSH_PORT $HAS_V4 $HAS_V6
     _add_fw_rule $PORT_VISION $HAS_V4 $HAS_V6
     _add_fw_rule $PORT_XHTTP $HAS_V4 $HAS_V6
+    
+    # 5. 持久化防火墙规则
     netfilter-persistent save >/dev/null 2>&1
+    echo -e "${OK}   防火墙规则已持久化保存"
 }
 
 setup_kernel_optimization() {
     echo -e "\n${BLUE}--- 4. 内核优化 (Kernel Opt) ---${PLAIN}"
     
     # 1. 自动开启 BBR
+    # 写入配置到 sysctl
     echo "net.core.default_qdisc=fq" > /etc/sysctl.d/99-xray-bbr.conf
     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.d/99-xray-bbr.conf
+    # 应用配置
     sysctl --system >/dev/null 2>&1
     echo -e "${OK}   BBR 加速已启用"
-
-    # 2. 自动 Swap
-    local ram_size=$(free -m | awk '/Mem:/ {print $2}')
-    if [ "$ram_size" -lt 2048 ] && ! grep -q "/swapfile" /proc/swaps; then
-        echo -e "${INFO} 内存不足 2GB，正在配置 1GB Swap..."
-        dd if=/dev/zero of=/swapfile bs=1M count=1024 status=none
-        chmod 600 /swapfile
-        mkswap /swapfile >/dev/null 2>&1
-        swapon /swapfile
-        if ! grep -q "/swapfile" /etc/fstab; then echo "/swapfile none swap sw 0 0" >> /etc/fstab; fi
-        echo -e "${OK}   Swap 已自动启用"
-    fi
 }
