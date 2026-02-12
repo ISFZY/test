@@ -153,26 +153,62 @@ unban_ip() {
     read -n 1 -s -r -p "按任意键继续..."
 }
 
+# 5. 添加白名单
 add_whitelist() {
-    echo -e "\n${BLUE}--- 添加白名单 (Whitelist Manager) ---${PLAIN}"
+    echo -e "\n${BLUE}--- 白名单管理 (Whitelist Manager) ---${PLAIN}"
     
-    # 获取白名单列表
-    local current_list=$(grep "^ignoreip" "$JAIL_FILE" | awk -F'=' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+    # 1. 获取列表
+    local raw_list=$(grep "^ignoreip" "$JAIL_FILE" | awk -F'=' '{print $2}' | sed 's/^[ \t]*//;s/[ \t]*$//')
+    IFS=' ' read -r -a ip_array <<< "$raw_list"
     
-    echo -e "当前已放行 IP (Current List):"
-    echo -e "${YELLOW}${current_list:-无}${PLAIN}"
-    echo -e "---------------------------------------------------"
+    # 2. 打印表头
+    echo -e "${GRAY}-------------------------------------------${PLAIN}"
+    printf "${YELLOW}%-6s %-25s %s${PLAIN}\n" "ID" "IP / Network" "Type"
+    echo -e "${GRAY}-------------------------------------------${PLAIN}"
     
+    if [ ${#ip_array[@]} -eq 0 ]; then
+        echo -e "      (无数据 / None)"
+    else
+        local user_idx=1
+        for ip in "${ip_array[@]}"; do
+            # 智能识别系统回环地址
+            # 匹配 127.x.x.x 或 ::1
+            if [[ "$ip" =~ ^127\. ]] || [[ "$ip" == "::1" ]]; then
+                # 系统内置 -> 显示红色的 #
+                printf "${RED}%-6s${PLAIN} %-25s ${GRAY}[System]${PLAIN}\n" "#" "$ip"
+            else
+                # 用户添加 -> 显示绿色的数字
+                printf "${GREEN}%-6s${PLAIN} %-25s ${BLUE}[User]${PLAIN}\n" "$user_idx" "$ip"
+                ((user_idx++))
+            fi
+        done
+    fi
+    echo -e "${GRAY}-------------------------------------------${PLAIN}"
+    
+    # 3. 交互逻辑
     local current_ip=$(echo $SSH_CLIENT | awk '{print $1}')
-    read -p "输入 IP (回车自动添加本机 ${current_ip}): " input_ip
+    
+    echo -e "${YELLOW}功能：添加新的 IP 到白名单${PLAIN}"
+    read -p "请输入 IP (回车自动添加本机 ${current_ip}): " input_ip
     
     if [ -z "$input_ip" ]; then input_ip="$current_ip"; fi
-    if [ -z "$input_ip" ]; then echo -e "${RED}无法获取 IP。${PLAIN}"; sleep 1; return; fi
     
-    if echo "$current_list" | grep -Fq "$input_ip"; then
-        echo -e "${YELLOW}该 IP 已存在。${PLAIN}"; sleep 1; return
+    if [ -z "$input_ip" ]; then 
+        echo -e "${RED}错误：无法获取有效 IP。${PLAIN}"
+        read -n 1 -s -r -p "按任意键返回..."
+        return
     fi
     
+    # 查重
+    for ip in "${ip_array[@]}"; do
+        if [[ "$ip" == "$input_ip" ]]; then
+            echo -e "${YELLOW}该 IP ($input_ip) 已存在。${PLAIN}"
+            read -n 1 -s -r -p "按任意键返回..."
+            return
+        fi
+    done
+    
+    # 添加
     sed -i "/^ignoreip/ s/$/ ${input_ip}/" "$JAIL_FILE"
     restart_f2b
 }
