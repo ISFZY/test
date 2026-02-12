@@ -66,22 +66,22 @@ check_net_stack() {
     echo -e "${OK}   网络检测: ${GREEN}${NET_TYPE}${PLAIN}"
 }
 
-# --- 时区检测与自动校准 ---
-check_timezone() {
+# --- 静默时区同步 ---
+setup_timezone() {
+    echo -e "\n${BLUE}--- 1. 时间同步 (Time Sync) ---${PLAIN}"
+    
+    # 1. 强制开启 NTP
+    timedatectl set-ntp true >/dev/null 2>&1
+    
+    # 2. 检测当前状态
     local current_tz=$(timedatectl show -p Timezone --value)
-    
-    echo -e "\n${BLUE}--- 1. 时区设置 (Timezone) ---${PLAIN}"
-    echo -e "   当前: ${YELLOW}${current_tz}${PLAIN}"
-    
-    # 交互询问    
-    read_with_timeout "时区是否修改为上海? (y/n)" "n" "$UI_TIMEOUT_SHORT"
-    local tz_choice="$USER_INPUT"
-
-    if [[ "$tz_choice" =~ ^[yY]$ ]]; then
-        execute_task "timedatectl set-timezone Asia/Shanghai" "设置时区为 Asia/Shanghai"
-    else
-        execute_task "timedatectl set-timezone UTC" "设置时区为 UTC"
+    if [ -z "$current_tz" ]; then
+        # 如果检测不到，兜底设置为 UTC
+        timedatectl set-timezone UTC
+        current_tz="UTC (Default)"
     fi
-
-    execute_task "timedatectl set-ntp true" "同步系统时间"
+    
+    echo -e "${OK}   当前时区: ${YELLOW}${current_tz}${PLAIN}"
+    echo -e "${OK}   NTP 同步: ${GREEN}已启用${PLAIN}"
+    echo -e "${INFO} (如需修改时区，安装后请输入 'zone')"
 }
