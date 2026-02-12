@@ -25,8 +25,8 @@ echo "\$nrconf{restart} = 'a';" > /etc/needrestart/conf.d/99-xray-auto.conf
 
 # === 1. 系统级更新 ===
 rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
-execute_task "apt-get update -qq"  "刷新软件源"
-execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "系统组件升级"
+execute_task "apt-get update -qq"  "   刷新软件源"
+execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "   系统组件升级"
 
 # === 2. 依赖安装 ===
 DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
@@ -38,7 +38,7 @@ for pkg in "${DEPENDENCIES[@]}"; do
         continue
     fi
 
-    execute_task "apt-get install -y $pkg" "安装依赖: $pkg"
+    execute_task "apt-get install -y $pkg" "   安装依赖: $pkg"
     
     # 二次校验与修复
     if ! dpkg -s "$pkg" &>/dev/null; then
@@ -111,13 +111,13 @@ install_geodata_robust() {
         local file_path="$share_dir/$name"
         local link_path="$bin_dir/$name"
 
-        execute_task "curl -L -o $file_path $url" "下载 $name"
+        execute_task "curl -L -o $file_path $url" "   下载 $name"
 
         local fsize=$(du -k "$file_path" 2>/dev/null | awk '{print $1}')
         if [ ! -f "$file_path" ] || [ -z "$fsize" ] || [ "$fsize" -lt 50 ]; then
             echo -e "${WARN} $name 文件校验失败 (Size: ${fsize}KB)，尝试重试..."
             rm -f "$file_path"
-            execute_task "curl -L -o $file_path $url" "重试下载 $name"
+            execute_task "curl -L -o $file_path $url" "   重试下载 $name"
         fi
 
         ln -sf "$file_path" "$link_path"
