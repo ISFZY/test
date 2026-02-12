@@ -203,8 +203,10 @@ add_whitelist() {
 
 # 6. 查看日志
 view_logs() {
-    # 检查日志文件是否存在
+    # 1. 定义临时文件路径
+    local tmp_file="/tmp/f2b_view.tmp"
     local log_file="/var/log/fail2ban.log"
+    
     if [ ! -f "$log_file" ]; then
         clear
         echo -e "${YELLOW}Log file not found ($log_file).${PLAIN}"
@@ -212,22 +214,20 @@ view_logs() {
         return
     fi
 
-    # 使用 { ... } 将表头和内容组合，统一传给 less 进行分页显示
-    {
-        echo -e "${BLUE}=================================================${PLAIN}"
-        echo -e "${BLUE}           Fail2ban 封禁/解封日志 (Audit Log)     ${PLAIN}"
-        echo -e "${BLUE}=================================================${PLAIN}"
-        
-        # 表头
-        printf "${GRAY}%-20s %-12s %-16s %s${PLAIN}\n" "[Date / Time]" "[Jail]" "[IP Address]" "[Action]"
-        echo -e "${GRAY}-----------------------------------------------------------${PLAIN}"
+    echo -e "${BLUE}>>> 正在加载日志...${PLAIN}"
 
-        # 核心处理逻辑
+    # 2. 生成带提示的临时文件
+    {
+        # === 顶部表头 ===
+        echo -e "${BLUE}=================================================================${PLAIN}"
+        echo -e "${BLUE}           Fail2ban 封禁/解封日志 (Audit Log)                     ${PLAIN}"
+        echo -e "${BLUE}=================================================================${PLAIN}"
+        printf "${GRAY}%-20s %-12s %-16s %s${PLAIN}\n" "[Date / Time]" "[Jail]" "[IP Address]" "[Action]"
+        echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
+
+        # === 中间日志内容 ===
         grep -E "(Ban|Unban)" "$log_file" 2>/dev/null | awk '{
-            # 1. 提取时间 (去除毫秒)
             dt = $1 " " substr($2, 1, 8);
-            
-            # 2. 智能提取字段
             jail = ""; action = ""; ip = "";
             for(i=3; i<=NF; i++) {
                 if ($i ~ /^\[.*\]$/) jail = $i;
@@ -239,17 +239,25 @@ view_logs() {
                 }
             }
             
-            # 3. 颜色处理
             if (action == "Ban") act_str = "\033[31m" action "\033[0m";
             else if (action == "Unban") act_str = "\033[32m" action "\033[0m";
             else act_str = "\033[33m" action "\033[0m";
 
-            # 4. 打印
             if (jail != "" && ip != "") {
                 printf "%-20s %-12s %-16s %s\n", dt, jail, ip, act_str
             }
         }'
-    } | less -R
+        
+        echo -e "${GRAY}-----------------------------------------------------------------${PLAIN}"
+        echo -e "${YELLOW}>>> 日志结束 (按 'q' 退出, '/' 搜索, 'PgUp' 翻页) <<<${PLAIN}"
+        
+    } > "$tmp_file"
+
+    # 3. 打开 (自动跳转到底部)
+    less -R +G "$tmp_file"
+    
+    # 4. 清理
+    rm -f "$tmp_file"
 }
 
 menu_exponential() {
