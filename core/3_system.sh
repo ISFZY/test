@@ -39,6 +39,8 @@ setup_firewall_and_security() {
 ignoreip = 127.0.0.1/8 ::1
 bantime = 1d
 maxretry = 3
+[DEFAULT]
+findtime = 7d
 backend = auto
 [sshd]
 enabled = true
