@@ -94,6 +94,7 @@ systemctl daemon-reload
 systemctl enable xray
 systemctl restart xray
 
+if [ $? -eq 0 ]; then
     # 自动显示 info
     if [ -f "/usr/local/bin/info" ]; then
         bash /usr/local/bin/info
