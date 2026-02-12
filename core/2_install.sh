@@ -10,9 +10,10 @@ if ! command -v execute_task >/dev/null 2>&1; then
         local desc="$2"
         echo -e "${INFO} 正在执行: $desc ..."
         if eval "$cmd" >/dev/null 2>&1; then
-            echo -e "${OK}   $desc 成功"
+            # [修正] 统一使用 1 个空格，与 utils.sh 保持一致
+            echo -e "${OK} $desc 成功"
         else
-            echo -e "${ERR}   $desc 失败"
+            echo -e "${ERR} $desc 失败"
             return 1
         fi
     }
@@ -25,8 +26,8 @@ echo "\$nrconf{restart} = 'a';" > /etc/needrestart/conf.d/99-xray-auto.conf
 
 # === 1. 系统级更新 ===
 rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
-execute_task "apt-get update -qq"   "刷新软件源"
-execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade"   "系统组件升级"
+execute_task "apt-get update -qq"  "刷新软件源"
+execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "系统组件升级"
 
 # === 2. 依赖安装 ===
 DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
@@ -34,17 +35,20 @@ DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptable
 echo -e "${INFO} 正在检查并安装系统依赖..."
 for pkg in "${DEPENDENCIES[@]}"; do
     if dpkg -s "$pkg" &>/dev/null; then
-        echo -e "${OK}   依赖已就绪: $pkg"
+        # [修正] 移除多余空格，保持 1 空格缩进，与 execute_task 对齐
+        echo -e "${OK} 依赖已就绪: $pkg"
         continue
     fi
 
-    execute_task "apt-get install -y $pkg"   "安装依赖  : $pkg"
+    # [修正] "安装依赖" (4字) 比 "依赖已就绪" (5字) 少1字，补2个空格实现冒号对齐
+    execute_task "apt-get install -y $pkg" "安装依赖  : $pkg"
     
     # 二次校验与修复
     if ! dpkg -s "$pkg" &>/dev/null; then
         echo -e "${WARN} 依赖 $pkg 安装校验失败！尝试修复源..."
         apt-get update -qq --fix-missing
-        execute_task "apt-get install -y $pkg"   "重试安装: $pkg"
+        # [修正] "重试安装" 同理补2个空格
+        execute_task "apt-get install -y $pkg" "重试安装  : $pkg"
         
         if ! dpkg -s "$pkg" &>/dev/null; then
             echo -e "${ERR} [FATAL] 核心依赖无法安装: $pkg"
@@ -77,7 +81,7 @@ install_xray_robust() {
         if execute_task "$install_cmd" "$desc"; then
             if [ -f "$bin_path" ] && "$bin_path" version &>/dev/null; then
                 local ver=$("$bin_path" version | head -n 1 | awk '{print $2}')
-                echo -e "${OK}   Xray 核心校验通过: ${GREEN}${ver}${PLAIN}"
+                echo -e "${OK} Xray 核心校验通过: ${GREEN}${ver}${PLAIN}"
                 return 0
             fi
         fi
@@ -111,29 +115,28 @@ install_geodata_robust() {
         local file_path="$share_dir/$name"
         local link_path="$bin_dir/$name"
 
-        execute_task "curl -L -o $file_path $url" "  下载 $name"
+        execute_task "curl -L -o $file_path $url" "下载 $name"
 
         local fsize=$(du -k "$file_path" 2>/dev/null | awk '{print $1}')
         if [ ! -f "$file_path" ] || [ -z "$fsize" ] || [ "$fsize" -lt 50 ]; then
             echo -e "${WARN} $name 文件校验失败 (Size: ${fsize}KB)，尝试重试..."
             rm -f "$file_path"
-            execute_task "curl -L -o $file_path $url"   "重试下载 $name"
+            execute_task "curl -L -o $file_path $url" "重试下载 $name"
         fi
 
         ln -sf "$file_path" "$link_path"
     done
 
     # === 配置自动更新任务 ===
-    # 每周日凌晨 4:00 更新
     local update_cmd="curl -L -o $share_dir/geoip.dat ${files[geoip.dat]} && curl -L -o $share_dir/geosite.dat ${files[geosite.dat]} && /usr/bin/systemctl restart xray"
     local cron_job="0 4 * * 0 $update_cmd >/dev/null 2>&1"
     
     if ! command -v crontab &>/dev/null; then apt-get install -y cron &>/dev/null; fi
     (crontab -l 2>/dev/null | grep -v 'geoip.dat' | grep -v 'geosite.dat'; echo "$cron_job") | crontab -
     
-    echo -e "${OK}   GeoData 安装完毕，并自动更新 (每周日 4:00)"
+    echo -e "${OK} GeoData 安装完毕，并自动更新 (每周日 4:00)"
 }
 
 install_geodata_robust
 
-echo -e "${INFO}   核心组件安装完毕 (Core Install Completed)。\n"
+echo -e "${INFO} 核心组件安装完毕 (Core Install Completed)。\n"
