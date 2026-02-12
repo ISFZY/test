@@ -16,12 +16,16 @@ OK="${GREEN}[OK]${PLAIN}"
 ERR="${RED}[ERR]${PLAIN}"
 WARN="${YELLOW}[WARN]${PLAIN}"
 
-# 3. 基础日志函数
+# 3 简单的旋转动画
+# Linux 等待动画： | / - \
+UI_SPINNER_FRAMES=("|" "/" "-" "\\")
+
+# 4. 基础日志函数
 log_info() { echo -e "${INFO} $*"; }
 log_warn() { echo -e "${WARN} $*"; }
 log_err()  { echo -e "${ERR} $*" >&2; }
 
-# 4. 任务执行函数 (Execute Task)
+# 5. 任务执行函数 (Execute Task)
 # 用法: execute_task "命令" "描述"
 # 功能: 执行命令，成功显示 [OK]，失败显示 [ERR] 并终止脚本
 execute_task() {
@@ -53,19 +57,23 @@ execute_task() {
     fi
 }
 
-# 5. Banner 展示
+# 6. Banner 展示
+# 基础信息配置
+AUTHOR="ISFZY"
+PROJECT_URL="https://github.com/ISFZY/Xray-Auto"
+
 print_banner() {
     clear
-    echo -e "${BLUE}======================================================${PLAIN}"
-    echo -e "${BLUE}       Xray 全自动部署脚本 (Auto Installer)           ${PLAIN}"
-    echo -e "${BLUE}======================================================${PLAIN}"
-    echo -e "  ${GREEN}架构设计 :${PLAIN} Modular & Robust"
-    echo -e "  ${GREEN}适配系统 :${PLAIN} Debian 10+ / Ubuntu 20+"
-    echo -e "${BLUE}======================================================${PLAIN}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
+    echo -e "${BLUE}           Xray Auto Installer ${YELLOW}${PLAIN}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
+    echo -e "  ${GREEN}作    者 :${PLAIN} ${AUTHOR}"
+    echo -e "  ${GREEN}项目地址 :${PLAIN} ${PROJECT_URL}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
     echo ""
 }
 
-# 6. 简单的锁机制 (防止并发运行)
+# 7. 简单的锁机制 (防止并发运行)
 check_lock() {
     local lock_file="/tmp/xray_install.lock"
     
