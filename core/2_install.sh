@@ -25,8 +25,8 @@ echo "\$nrconf{restart} = 'a';" > /etc/needrestart/conf.d/99-xray-auto.conf
 
 # === 1. 系统级更新 ===
 rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
-execute_task "apt-get update -qq"  "  刷新软件源"
-execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "  系统组件升级"
+execute_task "apt-get update -qq"   "刷新软件源"
+execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade"   "系统组件升级"
 
 # === 2. 依赖安装 ===
 DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
@@ -38,13 +38,13 @@ for pkg in "${DEPENDENCIES[@]}"; do
         continue
     fi
 
-    execute_task "apt-get install -y $pkg" "  安装依赖  : $pkg"
+    execute_task "apt-get install -y $pkg"   "安装依赖  : $pkg"
     
     # 二次校验与修复
     if ! dpkg -s "$pkg" &>/dev/null; then
         echo -e "${WARN} 依赖 $pkg 安装校验失败！尝试修复源..."
         apt-get update -qq --fix-missing
-        execute_task "apt-get install -y $pkg" "重试安装: $pkg"
+        execute_task "apt-get install -y $pkg"   "重试安装: $pkg"
         
         if ! dpkg -s "$pkg" &>/dev/null; then
             echo -e "${ERR} [FATAL] 核心依赖无法安装: $pkg"
@@ -69,7 +69,7 @@ install_xray_robust() {
     mkdir -p /usr/local/share/xray/
 
     while [ $count -lt $max_tries ]; do
-        if [ $count -gt 0 ]; then desc="  安装 Xray Core (第 $((count+1)) 次尝试)"; else desc="  安装 Xray Core"; fi
+        if [ $count -gt 0 ]; then desc="安装 Xray Core (第 $((count+1)) 次尝试)"; else desc="安装 Xray Core"; fi
         
         # 使用官方标准安装脚本 (直连 github raw)
         local install_cmd="bash -c \"\$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)\" @ install --without-geodata $VER_ARG"
@@ -117,7 +117,7 @@ install_geodata_robust() {
         if [ ! -f "$file_path" ] || [ -z "$fsize" ] || [ "$fsize" -lt 50 ]; then
             echo -e "${WARN} $name 文件校验失败 (Size: ${fsize}KB)，尝试重试..."
             rm -f "$file_path"
-            execute_task "curl -L -o $file_path $url" "  重试下载 $name"
+            execute_task "curl -L -o $file_path $url"   "重试下载 $name"
         fi
 
         ln -sf "$file_path" "$link_path"
