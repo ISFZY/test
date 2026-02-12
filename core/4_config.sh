@@ -5,7 +5,6 @@ core_config() {
     echo -e "\n${BLUE}--- 5. 生成 Xray 配置文件 (Config) ---${PLAIN}"
 
     # 1. 检查必要变量 (从 3_system.sh 继承)
-    # 如果这些端口为空，说明上一步出错了
     if [ -z "$PORT_VISION" ] || [ -z "$PORT_XHTTP" ]; then
         echo -e "${RED}[FATAL] 端口参数丢失！请检查系统配置步骤。${PLAIN}"
         exit 1
@@ -29,7 +28,7 @@ core_config() {
     
     UUID=$($XRAY_BIN uuid)
     KEYS=$($XRAY_BIN x25519)
-    # 提取密钥 (更加健壮的 awk 逻辑)
+    # 提取密钥
     PRIVATE_KEY=$(echo "$KEYS" | grep "Private" | awk -F': ' '{print $2}' | xargs)
     PUBLIC_KEY=$(echo "$KEYS" | grep -E "Public|Password" | awk -F': ' '{print $2}' | xargs)
     
@@ -110,10 +109,10 @@ core_config() {
 EOF
 
     # 6. Systemd 资源限制优化 (Systemd Override)
-    # 这对高性能节点非常重要，防止连接数过多导致服务崩溃
+    # 防止连接数过多导致服务崩溃
     mkdir -p /etc/systemd/system/xray.service.d
     echo -e "[Service]\nLimitNOFILE=infinity\nLimitNPROC=infinity\nTasksMax=infinity" > /etc/systemd/system/xray.service.d/override.conf
-    # 重载 systemd 配置 (因为我们修改了 service.d)
+    # 重载 systemd 配置
     systemctl daemon-reload >/dev/null 2>&1
 
     echo -e "${OK}   Xray 配置文件生成完毕。"
