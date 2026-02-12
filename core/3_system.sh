@@ -14,7 +14,7 @@ _add_fw_rule() {
 setup_firewall_and_security() {
     echo -e "\n${BLUE}--- 3. 端口与安全 (Security) ---${PLAIN}"
     
-    # 1. 自动获取 SSH 端口 (保持不变)
+    # 1. 自动获取 SSH 端口
     local current_ssh_port=$(grep "^Port" /etc/ssh/sshd_config | head -n 1 | awk '{print $2}' | tr -d '\r')
     SSH_PORT=${current_ssh_port:-22}
     
@@ -33,8 +33,7 @@ setup_firewall_and_security() {
     echo -e "${OK}   XHTTP  端口 : ${GREEN}$PORT_XHTTP${PLAIN}"
     echo -e "${INFO} (如需修改端口，安装后请输入 'ports')"
 
-    # Fail2ban 配置 (自动配置，不询问)
-    # 使用 auto backend 兼容性更好
+    # Fail2ban 配置
     cat > /etc/fail2ban/jail.local <<EOF
 [DEFAULT]
 ignoreip = 127.0.0.1/8 ::1
@@ -46,7 +45,6 @@ enabled = true
 port = $SSH_PORT
 mode = normal
 EOF
-    # 静默重启服务
     systemctl restart rsyslog >/dev/null 2>&1
     systemctl enable fail2ban >/dev/null 2>&1
     systemctl restart fail2ban >/dev/null 2>&1
@@ -62,13 +60,13 @@ EOF
 setup_kernel_optimization() {
     echo -e "\n${BLUE}--- 4. 内核优化 (Kernel Opt) ---${PLAIN}"
     
-    # 1. 自动开启 BBR (不询问)
+    # 1. 自动开启 BBR
     echo "net.core.default_qdisc=fq" > /etc/sysctl.d/99-xray-bbr.conf
     echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.d/99-xray-bbr.conf
     sysctl --system >/dev/null 2>&1
     echo -e "${OK}   BBR 加速已启用"
 
-    # 2. 自动 Swap (如果内存 < 2GB)
+    # 2. 自动 Swap
     local ram_size=$(free -m | awk '/Mem:/ {print $2}')
     if [ "$ram_size" -lt 2048 ] && ! grep -q "/swapfile" /proc/swaps; then
         echo -e "${INFO} 内存不足 2GB，正在配置 1GB Swap..."
@@ -80,7 +78,3 @@ setup_kernel_optimization() {
         echo -e "${OK}   Swap 已自动启用"
     fi
 }
-
-# --- 执行配置 ---
-setup_firewall_and_security
-setup_kernel_optimization
