@@ -214,7 +214,7 @@ view_logs() {
 
     clear
     echo -e "${BLUE}=================================================================${PLAIN}"
-    echo -e "${BLUE}           Fail2ban Audit Log (Last 20 Events)                   ${PLAIN}"
+    echo -e "${BLUE}           Fail2ban 管理日志 (最近 20 条)                         ${PLAIN}"
     echo -e "${BLUE}=================================================================${PLAIN}"
     
     # === 表头 ===
@@ -289,12 +289,13 @@ while true; do
     echo -e "  2. 修改 初始封禁时长 [${YELLOW}${VAL_BAN}${PLAIN}]"
     echo -e "  3. 修改 监测时间窗口 [${YELLOW}${VAL_FIND}${PLAIN}]"
     echo -e "---------------------------------------------------"
-    echo -e "  4. ${GREEN}手动解封 IP${PLAIN}  (Unban)"
-    echo -e "  5. ${GREEN}添加白名单${PLAIN}   (Whitelist)"
-    echo -e "  6. 查看封禁日志 (Logs)"
-    echo -e "  7. ${YELLOW}指数封禁设置${PLAIN} (Advanced) ->"
+    echo -e "  4. ${GREEN}手动解封 IP${PLAIN}"
+    echo -e "  5. ${GREEN}添加白名单${PLAIN}"
+    echo -e "  6. 查看封禁日志"
+    echo -e "  7. ${YELLOW}指数封禁设置${PLAIN}"
     echo -e "---------------------------------------------------"
     echo -e "  8. 开启/停止 Fail2ban 服务 (On/Off)"
+    echo -e "---------------------------------------------------"
     echo -e "  0. 退出"
     echo -e ""
     read -p "请输入选项 [0-8]: " choice
