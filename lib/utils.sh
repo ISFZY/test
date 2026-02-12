@@ -83,3 +83,42 @@ check_lock() {
     echo $$ > "$lock_file"
     trap 'rm -f "/tmp/xray_install.lock"; exit' INT TERM EXIT
 }
+
+confirm_installation() {
+    echo -e "${YELLOW}即将开始安装 Xray 服务...${PLAIN}"
+    
+    local prompt_msg="确认继续安装? [y/n]: "
+    
+    while true; do
+        # 1. 打印提示符 (-n 不换行)
+        echo -ne "${prompt_msg}"
+        
+        # 2. 读取单个字符 (-n 1)，静默模式 (-s)
+        read -n 1 -s key
+        
+        # 3. 判定逻辑
+        case "$key" in
+            y|Y)
+                # 输入正确：手动显示字符并换行
+                echo "y"
+                echo -e "${INFO} 用户确认，开始执行..." 
+                break 
+                ;;
+            n|N)
+                echo "n"
+                echo -e "${WARN} 用户取消安装。"
+                exit 1 
+                ;;
+            *)
+                # === 错误处理核心 ===
+                # A. \r 回到行首
+                # B. \033[K 清除整行 (把刚才的 prompt_msg 擦掉)
+                # C. 打印红色的报错信息 (替代了原本的输入行)
+                echo -ne "\r\033[K"
+                echo -e "${RED}[错误] 输入无效 '${key}' (只能输入 y 或 n)${PLAIN}"
+                
+                # D. 循环继续，脚本会在下一行重新打印 prompt_msg
+                ;;
+        esac
+    done
+}
