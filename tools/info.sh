@@ -51,21 +51,31 @@ fi
 
 # --- 3. 界面展示 ---
 clear
-echo -e "${BLUE}===================================================================${PLAIN}"
-echo -e "${BLUE}  Xray 配置详情 (Dynamic Info)                                      ${PLAIN}"
-echo -e "${BLUE}===================================================================${PLAIN}"
-echo -e "  SSH 端口    : ${RED}${SSH_PORT}${PLAIN}"
-echo -e "  IPv4 地址   : ${GREEN}${IPV4}${PLAIN}"
-echo -e "  IPv6 地址   : ${GREEN}${IPV6}${PLAIN}"
-echo -e "  SNI 伪装域  : ${YELLOW}${SNI_HOST}${PLAIN}"
-echo -e "  UUID        : ${BLUE}${UUID}${PLAIN}"
-echo -e "  Short ID    : ${BLUE}${SHORT_ID}${PLAIN}"
-echo -e "  Public Key  : ${YELLOW}${PUBLIC_KEY}${PLAIN} (客户端)"
-echo -e "  Private Key : ${RED}${PRIVATE_KEY}${PLAIN} (服务端)"
-echo -e "-------------------------------------------------------------------"
-echo -e "  Vision      : 端口: ${GREEN}${PORT_VISION}${PLAIN}    流控: ${GREEN}xtls-rprx-vision${PLAIN}"
-echo -e "  xhttp       : 端口: ${GREEN}${PORT_XHTTP}${PLAIN}   协议: ${GREEN}xhttp${PLAIN}            路径: ${GREEN}${XHTTP_PATH}${PLAIN}"
-echo -e "${BLUE}===================================================================${PLAIN}"
+
+SEP="${BLUE}=================================================================${PLAIN}"
+
+echo -e "${SEP}"
+echo -e "${BLUE} Xray Configuration (Dynamic Info) ${PLAIN}"
+echo -e "${SEP}"
+
+printf " %-13s : ${RED}%s${PLAIN}\n"      "SSH Port"    "${SSH_PORT}"
+printf " %-13s : ${GREEN}%s${PLAIN}\n"    "IPv4 IP"     "${IPV4}"
+printf " %-13s : ${GREEN}%s${PLAIN}\n"    "IPv6 IP"     "${IPV6}"
+printf " %-13s : ${YELLOW}%s${PLAIN}\n"   "SNI Host"    "${SNI_HOST}"
+printf " %-13s : ${BLUE}%s${PLAIN}\n"     "UUID"        "${UUID}"
+printf " %-13s : ${BLUE}%s${PLAIN}\n"     "Short ID"    "${SHORT_ID}"
+printf " %-13s : ${YELLOW}%s${PLAIN} (Client)\n" "Public Key"  "${PUBLIC_KEY}"
+printf " %-13s : ${RED}%s${PLAIN} (Server)\n"    "Private Key" "${PRIVATE_KEY}"
+
+echo -e "${SEP}"
+
+printf " %-13s : Port: ${GREEN}%-6s${PLAIN} Flow: ${GREEN}%-16s${PLAIN}\n" \
+  "Vision" "${PORT_VISION}" "xtls-rprx-vision"
+
+printf " %-13s : Port: ${GREEN}%-6s${PLAIN} Type: ${GREEN}%-16s${PLAIN} Path: ${GREEN}%s${PLAIN}\n" \
+  "xhttp" "${PORT_XHTTP}" "xhttp" "${XHTTP_PATH}"
+
+echo -e "${SEP}"
 
 # 节点
 if [[ -n "$LINK_V4_VIS" ]]; then
