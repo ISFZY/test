@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# =========================================================
 # 定义颜色
-# =========================================================
 RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
@@ -18,9 +16,7 @@ ASSET_DIR="/usr/local/share/xray"
 # 确保备份目录存在
 mkdir -p "$BACKUP_DIR"
 
-# =========================================================
 # 核心逻辑
-# =========================================================
 
 # 1. 创建备份
 create_backup() {
@@ -40,8 +36,8 @@ create_backup() {
     
     # 保留最近10份
     local count=$(ls -1 "$BACKUP_DIR"/config_*.json 2>/dev/null | wc -l)
-    if [ "$count" -gt 10 ]; then
-        echo -e "${YELLOW}清理旧备份 (保留最近10份)...${PLAIN}"
+    if [ "$count" -gt 9 ]; then
+        echo -e "${YELLOW}清理旧备份 (保留最近9份)...${PLAIN}"
         cd "$BACKUP_DIR"
         ls -t config_*.json | tail -n +11 | xargs -I {} rm -- {} 2>/dev/null
     fi
@@ -77,35 +73,96 @@ restore_backup() {
     echo -e "-------------------------------------------------"
     echo -e "  0. 取消"
     echo -e ""
-    read -p "请输入选项 [0-${#files[@]}]: " choice
     
-    if [ "$choice" == "0" ]; then return; fi
+    local limit=${#files[@]}
+    echo -ne "请输入选项 [0-$limit]: "
     
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -le "${#files[@]}" ] && [ "$choice" -gt 0 ]; then
-        local target_file="${files[$((choice-1))]}"
+    while true; do
+        # 读取单个字符，< /dev/tty 确保脚本被 cat 管道调用时也能读取键盘
+        read -n 1 -s key < /dev/tty
         
+        # 1. 判断是否是数字
+        if [[ "$key" =~ ^[0-9]$ ]]; then
+            
+            # 情况A: 输入 0 -> 取消
+            if [ "$key" -eq 0 ]; then
+                echo "$key"  # 手动回显字符
+                echo -e "\n操作已取消。"
+                return
+            fi
+            
+            # 情况B: 输入有效数字 (1 到 文件总数)
+            if [ "$key" -le "$limit" ] && [ "$key" -gt 0 ]; then
+                echo "$key"  # 手动回显字符
+                choice=$key  # 赋值给 choice 变量
+                break        # 跳出循环，继续执行还原
+            else
+                # 情况C: 输入了数字，但超出了当前文件数量
+                # \r 回到行首 + \033[K 清除行内容
+                echo -ne "\r\033[K${RED}错误：选项无效，请输入 0-$limit${PLAIN}"
+                sleep 0.5
+                # 恢复提示
+                echo -ne "\r\033[K请输入选项 [0-$limit]: "
+            fi
+        else
+            # 情况D: 输入了非数字字符
+            echo -ne "\r\033[K${RED}错误：输入无效，请按数字键${PLAIN}"
+            sleep 0.5
+            echo -ne "\r\033[K请输入选项 [0-$limit]: "
+        fi
+    done
+    
+    local target_file="${files[$((choice-1))]}"
+            
         echo -e "\n您选择了: ${YELLOW}$(basename "$target_file")${PLAIN}"
         
         # 1. 预检备份文件完整性
         echo -e "正在校验备份文件..."
         
-        # 将 -conf 修改为 -c
         if ! XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -c "$target_file" >/dev/null 2>&1; then
             echo -e "${RED}错误：该备份文件校验失败，无法还原！${PLAIN}"
             echo -e "${YELLOW}>>> 错误详情 (Debug Info):${PLAIN}"
-            # [修复点] 这里的调试输出也同步修改为 -c
+
             XRAY_LOCATION_ASSET="$ASSET_DIR" "$XRAY_BIN" run -test -c "$target_file"
             return
         fi
 
-        echo -ne "确定要覆盖当前配置吗？此操作不可逆！[y/n]: "
+        # 确认覆盖
+        local confirm_msg="确定要覆盖当前配置吗？此操作不可逆！[y/n]: "
+        echo -ne "$confirm_msg"
+        
         while true; do
-            read -n 1 -r key
+            # 静默读取1个字符，强制从终端读取
+            read -n 1 -s key < /dev/tty
+            
             case "$key" in
                 [yY]) 
-                    echo -e "\n${BLUE}>>> 正在还原...${PLAIN}"
-                    cp "$target_file" "$CONFIG_FILE"
-                    chmod 644 "$CONFIG_FILE"
+                    # 输入正确：回显字符并换行，然后跳出循环去执行还原
+                    echo "$key"
+                    break 
+                    ;;
+                [nN]) 
+                    # 输入取消：回显字符并换行，提示取消并返回
+                    echo "$key"
+                    echo -e "\n操作已取消。"
+                    return 
+                    ;;
+                *) 
+                    # 输入错误：
+                    # \r 回到行首
+                    # \033[K 清除当前行内容
+                    echo -ne "\r\033[K${RED}错误：输入无效，请输入 y 或 n${PLAIN}"
+                    sleep 0.5
+                    # 恢复原本的提示语
+                    echo -ne "\r\033[K$confirm_msg"
+                    ;;
+            esac
+        done
+                
+        echo -e "\n${BLUE}>>> 正在还原...${PLAIN}"
+        cp "$target_file" "$CONFIG_FILE"
+        chmod 644 "$CONFIG_FILE"
+
                     systemctl restart xray
                     sleep 1
                     
@@ -141,9 +198,7 @@ export_backup() {
     echo -e "${YELLOW}提示：你可以复制上方内容保存到本地 config.json${PLAIN}"
 }
 
-# =========================================================
 # 菜单
-# =========================================================
 while true; do
     clear
     echo -e "${BLUE}=================================================${PLAIN}"
@@ -155,13 +210,36 @@ while true; do
     echo -e "-------------------------------------------------"
     echo -e "  0. 退出"
     echo -e ""
-    read -p "请输入选项 [0-3]: " choice
 
-    case "$choice" in
-        1) create_backup; read -n 1 -s -r -p "按任意键继续..." ;;
-        2) restore_backup; read -n 1 -s -r -p "按任意键继续..." ;;
-        3) export_backup; read -n 1 -s -r -p "按任意键继续..." ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
-    esac
-done
+    echo -ne "请输入选项 [0-3]: "
+
+    while true; do
+        # 2. 读取单个字符，静默模式 (-s) 不回显，无需回车
+        read -n 1 -s key
+        
+        case "$key" in
+            [0-3])
+                # 输入有效：手动回显该字符并换行
+                echo "$key"
+                echo ""
+                
+                # 执行对应功能
+                case "$key" in
+                    1) create_backup; read -n 1 -s -r -p "按任意键继续..." ;;
+                    2) restore_backup; read -n 1 -s -r -p "按任意键继续..." ;;
+                    3) export_backup; read -n 1 -s -r -p "按任意键继续..." ;;
+                    0) exit 0 ;;
+                esac
+                break # 跳出输入循环，重新刷新菜单
+                ;;
+            *)
+                # 输入无效：
+                # \r 回到行首
+                # \033[K 清除当前行内容
+                echo -ne "\r\033[K${RED}输入无效，请按 0-3${PLAIN}"
+                sleep 0.5
+                # 恢复原提示符
+                echo -ne "\r\033[K请输入选项 [0-3]: "
+                ;;
+        esac
+    done
