@@ -55,7 +55,7 @@ del_swap() {
     read -n 1 -s -r -p "按任意键继续..."
 }
 
-# [新功能] 调整 Swappiness
+# 调整 Swappiness
 set_swappiness() {
     echo -e "\n${BLUE}当前亲和度 (Swappiness): ${YELLOW}${SWAPPINESS}${PLAIN}"
     echo -e "说明: 值越小(0-10)，越倾向于使用物理内存(速度快)。"

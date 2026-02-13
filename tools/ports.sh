@@ -67,7 +67,7 @@ change_ssh() {
     echo -e "${RED}#${PLAIN}                                                              ${RED}#${PLAIN}"
     echo -e "${RED}#${PLAIN}  2. 修改后【绝对不要】关闭当前窗口！                         ${RED}#${PLAIN}"
     echo -e "${RED}#${PLAIN}     请新开一个 SSH 窗口测试连接。如果失败，                  ${RED}#${PLAIN}"
-    echo -e "${RED}#${PLAIN}     请立即利用当前窗口改回原端口 ($CURRENT_SSH)。                    ${RED}#${PLAIN}"
+    echo -e "${RED}#${PLAIN}     请立即利用当前窗口改回原端口 ($CURRENT_SSH)。                     ${RED}#${PLAIN}"
     echo -e "${RED}#${PLAIN}                                                              ${RED}#${PLAIN}"
     echo -e "${RED}################################################################${PLAIN}"
     echo ""

@@ -134,7 +134,6 @@ while true; do
     echo -e "  3. 优选 WARP IP       ${GRAY}(当 Netflix 依然看不了时使用)${PLAIN}"
     echo -e "---------------------------------------------------"
     echo -e "  [分流策略控制台]"
-    # 使用 printf 进行对齐，或者手动使用点阵线
     echo -e "  4. Netflix 媒体库 ....... [ ${STATUS_NF} ]"
     echo -e "  5. 全能 AI 分流包 ....... [ ${STATUS_AI} ]"
     echo -e "     ${GRAY}(含 OpenAI, Claude, Grok)${PLAIN}"
