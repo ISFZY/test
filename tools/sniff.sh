@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# =========================================================
 # 定义颜色
-# =========================================================
 RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
@@ -15,10 +13,7 @@ LOG_FILE="/var/log/xray/access.log"
 # 检查依赖
 if ! command -v jq &> /dev/null; then echo -e "${RED}错误: 缺少 jq 组件。${PLAIN}"; exit 1; fi
 
-# =========================================================
 # 核心函数
-# =========================================================
-
 # 1. 获取嗅探状态
 get_sniff_status() {
     if [ ! -f "$CONFIG_FILE" ]; then echo "Error"; return; fi
@@ -158,18 +153,15 @@ watch_traffic() {
     
     clear
     echo -e "${GREEN}=================================================${PLAIN}"
-    echo -e "${GREEN}        Real-time Traffic Audit (Ctrl+C to Exit)${PLAIN}"
+    echo -e "${GREEN}        实时监视 (Ctrl+C 退出)${PLAIN}"
     echo -e "${GREEN}=================================================${PLAIN}"
     echo -e "Listening: ${YELLOW}$LOG_FILE${PLAIN}"
     echo ""
     
-    # === [标题] ===
-    # 使用标准格式化
     # %-15s 表示占用15格左对齐，以此类推
     printf "${GRAY}%-15s %-22s %-25s %-63s %s${PLAIN}\n" "[Time]" "[Source IP]" "[Routing]" "[Destination]" "[User]"
     echo -e "${GRAY}---------------------------------------------------------------------------------------------------------------------------------------${PLAIN}"
     
-    # === [数据内容] ===
     # 必须与上面的标题宽度完全一致
     tail -f "$LOG_FILE" | awk '{
         if ($5 == "accepted") {
@@ -181,36 +173,89 @@ watch_traffic() {
     }'
 }
 
-# =========================================================
 # 菜单
-# =========================================================
-while true; do
+show_menu() {
     clear
     echo -e "${BLUE}=================================================${PLAIN}"
-    echo -e "${BLUE}           Xray 流量嗅探工具 (Traffic Sniff)     ${PLAIN}"
+    echo -e "${BLUE}           Xray 流量嗅探工具 (Traffic Sniff)      ${PLAIN}"
     echo -e "${BLUE}=================================================${PLAIN}"
-    echo -e "  配置嗅探: $(get_sniff_status)"
-    echo -e "  日志记录: $(get_log_status)"
+    echo -e " 配置嗅探: $(get_sniff_status)"
+    echo -e " 日志记录: $(get_log_status)"
     echo -e "-------------------------------------------------"
-    echo -e "  1. 开启 流量嗅探 (Sniffing) ${GREEN}[推荐]${PLAIN}"
-    echo -e "  2. 关闭 流量嗅探"
+    echo -e " 1. 开启 流量嗅探 (Sniffing) ${GREEN}[推荐]${PLAIN}"
+    echo -e " 2. 关闭 流量嗅探"
     echo -e "-------------------------------------------------"
-    echo -e "  3. 开启 访问日志"
-    echo -e "  4. 关闭 访问日志"
+    echo -e " 3. 开启 访问日志"
+    echo -e " 4. 关闭 访问日志"
     echo -e "-------------------------------------------------"
-    echo -e "  5. ${YELLOW}进入实时流量审计模式${PLAIN}"
+    echo -e " 5. ${YELLOW}进入实时流量审计模式${PLAIN}"
     echo -e "-------------------------------------------------"
-    echo -e "  0. 退出"
+    echo -e " 0. 退出"
     echo -e ""
-    read -p "请输入选项 [0-5]: " choice
-    
+}
+
+# 脚本开始时先显示一次菜单
+show_menu
+
+while true; do
+    # 打印提示符（-n 不换行），准备读取
+    echo -ne "请输入选项 [0-5]: "
+
+    # -n 1: 限制只读取1个字符
+    # -s:   静默模式
+    read -n 1 -s choice
+
     case "$choice" in
-        1) toggle_sniffing "true"; read -n 1 -s -r -p "按任意键继续..." ;;
-        2) toggle_sniffing "false"; read -n 1 -s -r -p "按任意键继续..." ;;
-        3) toggle_logging "on"; read -n 1 -s -r -p "按任意键继续..." ;;
-        4) toggle_logging "off"; read -n 1 -s -r -p "按任意键继续..." ;;
-        5) watch_traffic ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
+        [0-5])
+            # 输入正确：
+            # \r 光标回到行首，\033[K 清除当前行（即清除“请输入选项...”）
+            # 然后在此处显示处理中的状态，避免换行刷屏
+            echo -ne "\r\033[K"
+            
+            case "$choice" in
+                1) 
+                    echo -e "${GREEN}正在开启嗅探...${PLAIN}"
+                    toggle_sniffing "true"
+
+                    read -n 1 -s -r -p "按任意键继续..." 
+                    show_menu 
+                    ;;
+                2) 
+                    echo -e "${GREEN}正在关闭嗅探...${PLAIN}"
+                    toggle_sniffing "false"
+                    read -n 1 -s -r -p "按任意键继续..." 
+                    show_menu 
+                    ;;
+                3) 
+                    echo -e "${GREEN}正在开启日志...${PLAIN}"
+                    toggle_logging "on"
+                    read -n 1 -s -r -p "按任意键继续..." 
+                    show_menu 
+                    ;;
+                4) 
+                    echo -e "${GREEN}正在关闭日志...${PLAIN}"
+                    toggle_logging "off"
+                    read -n 1 -s -r -p "按任意键继续..." 
+                    show_menu 
+                    ;;
+                5) 
+                    watch_traffic 
+                    # 退出实时模式后，重新绘制菜单
+                    show_menu 
+                    ;;
+                0) 
+                    echo -e "${GREEN}退出脚本${PLAIN}"
+                    exit 0 
+                    ;;
+            esac
+            ;;
+        *)
+            # 输入错误：
+            # \r 回到行首，\033[K 清除提示符行，用红色报错信息覆盖
+            echo -ne "\r\033[K${RED}输入无效，请输入 [0-5]${PLAIN}"
+            sleep 1
+            # 延时后，清除报错行，下一次循环会重新打印“请输入选项...”
+            echo -ne "\r\033[K"
+            ;;
     esac
 done

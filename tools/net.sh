@@ -9,9 +9,7 @@ SYSCTL_CONF="/etc/sysctl.conf"
 # 检查依赖
 if ! command -v jq &> /dev/null; then echo -e "${RED}错误: 缺少 jq 组件。${PLAIN}"; exit 1; fi
 
-# ==============================================================================
 # 核心辅助函数
-# ==============================================================================
 # 1. 连通性检测 
 check_connectivity() {
     local target_ver=$1
@@ -149,9 +147,7 @@ apply_strategy() {
     read -n 1 -s -r -p "按任意键继续..."
 }
 
-# ==============================================================================
 # 状态显示逻辑
-# ==============================================================================
 get_current_status() {
     # 1. 获取 Xray 策略
     local xray_conf="Unknown"
@@ -199,33 +195,99 @@ get_current_status() {
     fi
 }
 
-# --- 交互菜单 ---
-while true; do
-    get_current_status
-    clear
-    echo -e "${BLUE}===================================================${PLAIN}"
-    echo -e "${BLUE}          网络优先级切换 (Network Priority)       ${PLAIN}"
-    echo -e "${BLUE}===================================================${PLAIN}"
-    echo -e "  当前状态: ${STATUS_TEXT}"
-    echo -e "---------------------------------------------------"
-    echo -e "  [双栈模式]"
-    echo -e "  1. IPv4 优先   ${GRAY}- IPv6 保持开启${PLAIN}"
-    echo -e "  2. IPv6 优先   ${GRAY}- IPv4 保持开启${PLAIN}"
-    echo -e "---------------------------------------------------"
-    echo -e "  [强制模式]"
-    echo -e "  3. 仅 IPv4     ${GRAY}- 系统禁用 IPv6 + Xray 强制 v4${PLAIN}"
-    echo -e "  4. 仅 IPv6     ${GRAY}- 系统保留 IPv4 + Xray 强制 v6${PLAIN}"
-    echo -e "---------------------------------------------------"
-    echo -e "  0. 退出"
-    echo -e ""
-    read -p "请输入选项 [0-4]: " choice
+# 交互菜单
+# 1. 首次清屏
+clear
 
+while true; do
+    # 获取最新状态
+    get_current_status
+    
+    # 2. 刷新菜单 (使用 \033[K 消除重影)
+    # \033[H : 光标复位到左上角
+    echo -e "\033[H"
+    
+    # 注意：加 \033[K 以清除旧残留
+    echo -e "${BLUE}================================================${PLAIN}\033[K"
+    echo -e "${BLUE}           网络优先级切换 (Network Priority)    ${PLAIN}\033[K"
+    echo -e "${BLUE}================================================${PLAIN}\033[K"
+    echo -e " 当前状态: ${STATUS_TEXT}\033[K"
+    echo -e "------------------------------------------------\033[K"
+    echo -e " [双栈模式]\033[K"
+    echo -e " 1. IPv4 优先   ${GRAY}- IPv6 保持开启${PLAIN}\033[K"
+    echo -e " 2. IPv6 优先   ${GRAY}- IPv4 保持开启${PLAIN}\033[K"
+    echo -e "------------------------------------------------\033[K"
+    echo -e " [强制模式]\033[K"
+    echo -e " 3. 仅 IPv4     ${GRAY}- 系统禁用 IPv6 + Xray 强制 v4${PLAIN}\033[K"
+    echo -e " 4. 仅 IPv6     ${GRAY}- 系统保留 IPv4 + Xray 强制 v6${PLAIN}\033[K"
+    echo -e "------------------------------------------------\033[K"
+    echo -e " 0. 退出\033[K"
+    echo -e "\033[K" 
+    
+    # \033[J : 清除光标下方所有内容 (防止日志堆积)
+    echo -e "\033[J"
+
+    # 3. 交互逻辑 (原地提示 1 秒后恢复)
+    while true; do
+        # 打印输入提示符
+        echo -ne "请输入选项 [0-4]: " 
+        
+        # 读取输入 (1个字符)
+        read -n 1 choice
+        
+        # 必须补换行，否则后续光标位置会乱
+        echo "" 
+
+        # 退出逻辑
+        if [[ "$choice" == "0" ]]; then
+            exit 0
+        fi
+
+        # 验证逻辑
+        if [[ ! "$choice" =~ ^[1-4]$ ]]; then
+            # [错误处理]
+            # \033[1A : 上移一行 (回到输入行)
+            # \033[K  : 清除该行
+            # 显示红色报错
+            echo -e "\033[1A\033[K${RED}输入无效: \"$choice\" 不是有效选项${PLAIN}"
+            
+            # 停留 1 秒
+            sleep 1
+            
+            # \033[1A\033[K : 再次上移并清除报错信息
+            # continue 后，循环会回到开头重新打印 "请输入选项..."
+            echo -ne "\033[1A\033[K"
+            continue
+        fi
+
+        # 输入正确
+        local desc=""
+        case "$choice" in
+            1) desc="IPv4 优先" ;;
+            2) desc="IPv6 优先" ;;
+            3) desc="纯 IPv4 模式" ;;
+            4) desc="纯 IPv6 模式" ;;
+        esac
+
+        # [成功提示] 原地替换为绿色提示
+        echo -e "\033[1A\033[K${GREEN}>>> 选中: ${desc}，正在执行...${PLAIN}"
+        
+        # 停留 1 秒
+        sleep 1
+        
+        # 跳出输入循环
+        break
+    done
+
+    # --- 4. 执行命令 ---
     case "$choice" in
         1) apply_strategy "v4_prio" "IPIfNonMatch" "IPv4 优先 (双栈)" ;;
         2) apply_strategy "v6_prio" "IPIfNonMatch" "IPv6 优先 (双栈)" ;;
         3) apply_strategy "v4_only" "UseIPv4"      "纯 IPv4 模式" ;;
         4) apply_strategy "v6_only" "UseIPv6"      "纯 IPv6 模式" ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
     esac
+
+    sleep 0.5
+    
+    # 循环回到顶部 -> \033[H 重绘菜单 -> 更新状态
 done

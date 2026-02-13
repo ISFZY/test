@@ -1,18 +1,13 @@
 #!/bin/bash
 
-# =========================================================
 # 定义颜色
-# =========================================================
 RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 BLUE="\033[36m"
 PLAIN="\033[0m"
 
-# =========================================================
 # 核心函数
-# =========================================================
-
 # 1. 获取当前时间状态
 get_time_status() {
     local tz=$(timedatectl show -p Timezone --value)
@@ -108,11 +103,14 @@ sync_time() {
     hwclock -w
 }
 
-# =========================================================
 # 菜单逻辑
-# =========================================================
+# 首次运行时先清屏一次
+clear
+
 while true; do
-    clear
+    # 1. 光标回到 (0,0) 原点，开始覆盖绘制，不闪烁
+    tput cup 0 0
+    
     echo -e "${BLUE}=================================================${PLAIN}"
     echo -e "${BLUE}           系统时区与时间管理 (Zone Manager)     ${PLAIN}"
     echo -e "${BLUE}=================================================${PLAIN}"
@@ -128,50 +126,57 @@ while true; do
     echo -e "  0. 退出 (Exit)          ${YELLOW}Enter/F. 刷新 (Refresh)${PLAIN}"
     echo -e ""
     
-    # read -n 1 : 读入1个字符立即返回
-    # -s : 静默模式(不回显字符)，让界面更干净
-    # -r : 防止反斜杠转义
-    # -p : 提示语
-    read -n 1 -s -r -p "请输入选项 [0-4]: " choice
-    
-    # 因为用了 -n 1，用户按键后不会换行。
-    # 对于 1-4 和 0 选项，我们需要手动 echo 空行来美化输出。
-    # 对于 F 和 回车(刷新)，因为马上要 clear，所以不需要空行。
+    # 2. 清除菜单下方可能残留的旧信息 (Erase Down)
+    tput ed
 
+    # --- 输入监听循环 ---
+    while true; do
+        # 使用 \r\033[K 保证输入行干净
+        echo -ne "\r\033[K请输入选项 [0-4]: "
+        read -n 1 -s -r choice
+        
+        case "$choice" in
+            1|2|3|4|0|f|F|"") 
+                break 
+                ;;
+            *) 
+                echo -ne "\r\033[K${RED}输入无效，请重新输入...${PLAIN}"
+                sleep 0.5
+                ;;
+        esac
+    done
+
+    # --- 业务执行 ---
     case "$choice" in
         1) 
-            echo "" # 补空行
+            echo "" 
             set_timezone "Asia/Shanghai" "中国上海"
-            read -n 1 -s -r -p "按任意键继续..." 
+            sleep 2 
             ;;
         2) 
             echo "" 
             set_timezone "UTC" "UTC 标准时"
-            read -n 1 -s -r -p "按任意键继续..." 
+            sleep 2 
             ;;
         3) 
             echo "" 
             set_custom_timezone
-            read -n 1 -s -r -p "按任意键继续..." 
+            sleep 2 
             ;;
         4) 
             echo "" 
             sync_time
-            read -n 1 -s -r -p "按任意键继续..." 
+            sleep 2 
             ;;
         0) 
+            # 退出时，光标移到最下方，避免覆盖菜单
             echo ""
+            echo -e "退出程序。"
             exit 0 
             ;;
         f|F|"") 
-            # 刷新逻辑：什么都不做，直接 continue 进入下一次循环
-            # 这会触发开头的 clear，达到刷新效果
+            # 刷新操作：直接 continue
             continue 
-            ;;
-        *) 
-            echo ""
-            echo -e "${RED}输入无效${PLAIN}"
-            sleep 0.5 
             ;;
     esac
 done
