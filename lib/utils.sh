@@ -1,6 +1,6 @@
 #!/bin/bash
 # ------------------------------------------------------------------
-# Utils: 通用工具库 (极简版)
+# Utils: 通用工具库
 # ------------------------------------------------------------------
 
 # 1. 颜色与 UI 定义
@@ -10,11 +10,7 @@ YELLOW="\033[33m"
 BLUE="\033[36m"
 PLAIN="\033[0m"
 
-# 2. 标准化日志前缀 (核心修改：增加空格补位，强制对齐 [INFO])
-# [INFO] = 6字符
-# [WARN] = 6字符
-# [ERR]  = 5字符 -> 补1空格
-# [OK]   = 4字符 -> 补2空格
+# 2. 标准化日志前缀 (空格补位，强制对齐 [INFO])
 INFO="${BLUE}[INFO]${PLAIN}"
 WARN="${YELLOW}[WARN]${PLAIN}"
 ERR="${RED}[ERR] ${PLAIN}"
@@ -40,7 +36,7 @@ execute_task() {
     
     if eval "$cmd" >/dev/null 2>$err_log; then
         rm -f "$err_log"
-        # 成功：[OK] 自带了2个空格，这里只需接1个空格即可对齐
+        # 成功
         echo -e "\r${OK} ${desc}                    "
         return 0
     else
@@ -57,15 +53,20 @@ execute_task() {
 }
 
 # 6. Banner 展示
+
+AUTHOR="ISFZY"
+PROJECT_URL="https://github.com/ISFZY/Xray-Auto"
+
 print_banner() {
     clear
-    echo -e "${BLUE}======================================================${PLAIN}"
-    echo -e "${BLUE}       Xray 全自动部署脚本 (Auto Installer)           ${PLAIN}"
-    echo -e "${BLUE}======================================================${PLAIN}"
-    echo -e "  ${GREEN}架构设计 :${PLAIN} Modular & Robust"
-    echo -e "  ${GREEN}适配系统 :${PLAIN} Debian 10+ / Ubuntu 20+"
-    echo -e "${BLUE}======================================================${PLAIN}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
+    echo -e "${BLUE}          Xray Auto Installer                                 ${PLAIN}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
+    echo -e "${BLUE}AUTHOR  :${PLAIN} ${AUTHOR}"
+    echo -e "${BLUE}PROJECT :${PLAIN} ${PROJECT_URL}"
+    echo -e "${BLUE}===============================================================${PLAIN}"
     echo ""
+}
 }
 
 # 7. 简单的锁机制
@@ -84,6 +85,7 @@ check_lock() {
     trap 'rm -f "/tmp/xray_install.lock"; exit' INT TERM EXIT
 }
 
+# 8. 交互确认函数
 confirm_installation() {
     echo -e "${YELLOW}即将开始安装 Xray 服务...${PLAIN}"
     
@@ -112,12 +114,12 @@ confirm_installation() {
             *)
                 # === 错误处理核心 ===
                 # A. \r 回到行首
-                # B. \033[K 清除整行 (把刚才的 prompt_msg 擦掉)
-                # C. 打印红色的报错信息 (替代了原本的输入行)
+                # B. \033[K 清除整行
+                # C. 打印红色的报错信息
                 echo -ne "\r\033[K"
                 echo -e "${RED}[错误] 输入无效 '${key}' (只能输入 y 或 n)${PLAIN}"
                 
-                # D. 循环继续，脚本会在下一行重新打印 prompt_msg
+                # D. 循环继续
                 ;;
         esac
     done
