@@ -51,28 +51,27 @@ fi
 
 # --- 3. 界面展示 ---
 clear
-
-SEP="${BLUE}=================================================================${PLAIN}"
-
-echo -e "${SEP}"
-echo -e "${BLUE} Xray Configuration (Dynamic Info) ${PLAIN}"
-echo -e "${SEP}"
-
-printf " %-13s : ${RED}%s${PLAIN}\n"      "SSH Port"    "${SSH_PORT}"
-printf " %-13s : ${GREEN}%s${PLAIN}\n"    "IPv4 IP"     "${IPV4}"
-printf " %-13s : ${GREEN}%s${PLAIN}\n"    "IPv6 IP"     "${IPV6}"
-printf " %-13s : ${YELLOW}%s${PLAIN}\n"   "SNI Host"    "${SNI_HOST}"
-printf " %-13s : ${BLUE}%s${PLAIN}\n"     "UUID"        "${UUID}"
-printf " %-13s : ${BLUE}%s${PLAIN}\n"     "Short ID"    "${SHORT_ID}"
-printf " %-13s : ${YELLOW}%s${PLAIN} (Client)\n" "Public Key"  "${PUBLIC_KEY}"
-printf " %-13s : ${RED}%s${PLAIN} (Server)\n"    "Private Key" "${PRIVATE_KEY}"
+SEP="${BLUE}=====================================================================${PLAIN}"
 
 echo -e "${SEP}"
+echo -e "${BLUE} Xray 配置详情 (Dynamic Info) ${PLAIN}"
+echo -e "${SEP}"
 
-printf " %-13s : Port: ${GREEN}%-6s${PLAIN} Flow: ${GREEN}%-16s${PLAIN}\n" \
+printf " %-12s : ${RED}%s${PLAIN}\n"      "SSH"    "${SSH_PORT}"
+printf " %-12s : ${GREEN}%s${PLAIN}\n"    "IPv4"     "${IPV4}"
+printf " %-12s : ${GREEN}%s${PLAIN}\n"    "IPv6"     "${IPV6}"
+printf " %-12s : ${YELLOW}%s${PLAIN}\n"   "SNI"    "${SNI_HOST}"
+printf " %-12s : ${BLUE}%s${PLAIN}\n"     "UUID"        "${UUID}"
+printf " %-12s : ${BLUE}%s${PLAIN}\n"     "Short ID"    "${SHORT_ID}"
+printf " %-12s : ${YELLOW}%s${PLAIN} (客户端)\n" "Public Key"  "${PUBLIC_KEY}"
+printf " %-12s : ${RED}%s${PLAIN} (服务端)\n"    "Private Key" "${PRIVATE_KEY}"
+
+echo -e "${SEP}"
+
+printf " %-12s : 端口: ${GREEN}%-6s${PLAIN} 流控: ${GREEN}%-16s${PLAIN}\n" \
   "Vision" "${PORT_VISION}" "xtls-rprx-vision"
 
-printf " %-13s : Port: ${GREEN}%-6s${PLAIN} Type: ${GREEN}%-16s${PLAIN} Path: ${GREEN}%s${PLAIN}\n" \
+printf " %-12s : 端口: ${GREEN}%-6s${PLAIN} 协议: ${GREEN}%-16s${PLAIN} Path: ${GREEN}%s${PLAIN}\n" \
   "xhttp" "${PORT_XHTTP}" "xhttp" "${XHTTP_PATH}"
 
 echo -e "${SEP}"
