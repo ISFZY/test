@@ -6,7 +6,7 @@
 execute_task() {
     local cmd="$1"
     local desc="$2"
-    echo -e "${INFO} 正在执行: $desc ..."
+    echo -e "${INFO} ${YELLOW}正在执行  : $desc ...${PLAIN}"
     if eval "$cmd" >/dev/null 2>&1; then
         echo -e "${GREEN}[OK]  ${PLAIN} ${desc} 成功"
     else
@@ -62,7 +62,7 @@ install_geodata_robust() {
     files["geoip.dat"]="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
     files["geosite.dat"]="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
 
-    echo -e "${INFO} 开始下载规则数据库 (GeoIP + Geosite)..."
+    echo -e "${INFO} ${YELLOW}开始下载规则数据库 (GeoIP + Geosite)...${PLAIN}"
 
     for name in "${!files[@]}"; do
         local url="${files[$name]}"
@@ -108,7 +108,7 @@ core_install() {
     # 3. 依赖安装
     local DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
     
-    echo -e "${INFO} 正在检查并安装系统依赖..."
+    echo -e "${INFO} ${YELLOW}正在检查并安装系统依赖...${PLAIN}"
     for pkg in "${DEPENDENCIES[@]}"; do
         if dpkg -s "$pkg" &>/dev/null; then
             echo -e "${OK} 依赖已就绪: $pkg"
@@ -134,5 +134,5 @@ core_install() {
     install_xray_robust
     install_geodata_robust
 
-    echo -e "${INFO} ${GREEN}核心组件安装完毕${PLAIN} (Core Install Completed).\n"
+    echo -e "${INFO} ${GREEN}核心组件安装完毕 (Core Install Completed).${PLAIN}\n"
 }
