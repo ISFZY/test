@@ -108,10 +108,36 @@ core_config() {
 }
 EOF
 
-    # 6. Systemd 资源限制优化 (Systemd Override)
-    # 防止连接数过多导致服务崩溃
+    # 6. Systemd 资源限制与路径优化 (Systemd Override)
+    # 优化点：
+    # 1. 解除文件描述符限制
+    # 2. 显式指定资源目录 (XRAY_LOCATION_ASSET)，彻底解决路径依赖问题，无需依赖软链接
+    
     mkdir -p /etc/systemd/system/xray.service.d
-    echo -e "[Service]\nLimitNOFILE=infinity\nLimitNPROC=infinity\nTasksMax=infinity" > /etc/systemd/system/xray.service.d/override.conf
+    
+    # 注意：Environment 必须指定到 /usr/local/share/xray/ 目录
+    cat > /etc/systemd/system/xray.service.d/override.conf <<EOF
+[Service]
+LimitNOFILE=infinity
+LimitNPROC=infinity
+TasksMax=infinity
+Environment="XRAY_LOCATION_ASSET=/usr/local/share/xray/"
+EOF
+
+# 7. 最终配置有效性验证 (Config Validation)
+echo -e "${INFO} 正在验证配置文件有效性..."
+if "$XRAY_BIN" run -test -confdir /usr/local/etc/xray >/dev/null 2>&1; then
+    echo -e "${OK} Xray 配置验证通过 (Syntax OK)"
+else
+    echo -e "${RED}[FATAL] 生成的配置文件无效！可能是 Xray 版本过低或配置语法错误。${PLAIN}"
+    # 尝试输出详细错误信息供调试
+    "$XRAY_BIN" run -test -confdir /usr/local/etc/xray
+    exit 1
+fi
+
+# 重载 systemd 配置
+# ...
+
     # 重载 systemd 配置
     systemctl daemon-reload >/dev/null 2>&1
 

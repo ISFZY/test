@@ -97,15 +97,3 @@ EOF
     netfilter-persistent save >/dev/null 2>&1
     echo -e "${OK} 防火墙规则已持久化保存"
 }
-
-setup_kernel_optimization() {
-    echo -e "\n${BLUE}--- 4. 内核优化 (Kernel Opt) ---${PLAIN}"
-    
-    # 1. 自动开启 BBR
-    # 写入配置到 sysctl
-    echo "net.core.default_qdisc=fq" > /etc/sysctl.d/99-xray-bbr.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.d/99-xray-bbr.conf
-    # 应用配置
-    sysctl --system >/dev/null 2>&1
-    echo -e "${OK} BBR 加速已启用"
-}

@@ -1,63 +1,21 @@
 #!/bin/bash
 # --- 2. 安装流程 (Core Installation) ---
 
-echo -e "\n${BLUE}--- 2. 开始安装核心组件 (Core Install) ---${PLAIN}"
-
-# 兼容性保障
-if ! command -v execute_task >/dev/null 2>&1; then
-    execute_task() {
-        local cmd="$1"
-        local desc="$2"
-        echo -e "${INFO} 正在执行: $desc ..."
-        if eval "$cmd" >/dev/null 2>&1; then
-
-            echo -e "${GREEN}[OK]  ${PLAIN} ${desc} 成功"
-        else
-            echo -e "${RED}[ERR] ${PLAIN} ${desc} 失败"
-            return 1
-        fi
-    }
-fi
-
-# 抑制 apt 交互弹窗
-export DEBIAN_FRONTEND=noninteractive
-mkdir -p /etc/needrestart/conf.d
-echo "\$nrconf{restart} = 'a';" > /etc/needrestart/conf.d/99-xray-auto.conf
-
-# === 1. 系统级更新 ===
-rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
-execute_task "apt-get update -qq"  "刷新软件源"
-execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "系统组件升级"
-
-# === 2. 依赖安装 ===
-DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
-
-echo -e "${INFO} 正在检查并安装系统依赖..."
-for pkg in "${DEPENDENCIES[@]}"; do
-    if dpkg -s "$pkg" &>/dev/null; then
-
-        echo -e "${OK} 依赖已就绪: $pkg"
-        continue
+# 辅助函数定义 (Helpers)
+# 1. 任务执行器
+execute_task() {
+    local cmd="$1"
+    local desc="$2"
+    echo -e "${INFO} 正在执行: $desc ..."
+    if eval "$cmd" >/dev/null 2>&1; then
+        echo -e "${GREEN}[OK]  ${PLAIN} ${desc} 成功"
+    else
+        echo -e "${RED}[ERR] ${PLAIN} ${desc} 失败"
+        return 1
     fi
+}
 
-    execute_task "apt-get install -y $pkg" "安装依赖  : $pkg"
-    
-    # 二次校验与修复
-    if ! dpkg -s "$pkg" &>/dev/null; then
-        echo -e "${WARN} 依赖 $pkg 安装校验失败！尝试修复源..."
-        apt-get update -qq --fix-missing
-
-        execute_task "apt-get install -y $pkg" "重试安装  : $pkg"
-        
-        if ! dpkg -s "$pkg" &>/dev/null; then
-            echo -e "${ERR} [FATAL] 核心依赖无法安装: $pkg"
-            echo -e "${YELLOW}请检查您的软件源 (apt sources) 是否正常。${PLAIN}"
-            exit 1
-        fi
-    fi
-done
-
-# === 3. Xray 核心安装 ===
+# 2. Xray 核心安装逻辑
 install_xray_robust() {
     local max_tries=3
     local count=0
@@ -79,7 +37,6 @@ install_xray_robust() {
         if execute_task "$install_cmd" "$desc"; then
             if [ -f "$bin_path" ] && "$bin_path" version &>/dev/null; then
                 local ver=$("$bin_path" version | head -n 1 | awk '{print $2}')
-
                 echo -e "${OK} Xray 核心校验通过: ${GREEN}${ver}${PLAIN}"
                 return 0
             fi
@@ -95,9 +52,7 @@ install_xray_robust() {
     exit 1
 }
 
-install_xray_robust
-
-# === 4. GeoData 核心数据库安装 ===
+# 3. GeoData 数据库安装逻辑
 install_geodata_robust() {
     local share_dir="/usr/local/share/xray"
     local bin_dir="/usr/local/bin"
@@ -126,7 +81,7 @@ install_geodata_robust() {
         ln -sf "$file_path" "$link_path"
     done
 
-    # === 配置自动更新任务 ===
+    # 配置自动更新
     local update_cmd="curl -L -o $share_dir/geoip.dat ${files[geoip.dat]} && curl -L -o $share_dir/geosite.dat ${files[geosite.dat]} && /usr/bin/systemctl restart xray"
     local cron_job="0 4 * * 0 $update_cmd >/dev/null 2>&1"
     
@@ -136,6 +91,48 @@ install_geodata_robust() {
     echo -e "${OK} GeoData 安装完毕，并自动更新 (每周日 4:00)"
 }
 
-install_geodata_robust
+# 主入口函数 (Main Function)
+core_install() {
+    echo -e "\n${BLUE}--- 2. 开始安装核心组件 (Core Install) ---${PLAIN}"
 
-echo -e "${INFO} 核心组件安装完毕 (Core Install Completed)。\n"
+    # 1. 抑制交互与系统清理
+    export DEBIAN_FRONTEND=noninteractive
+    mkdir -p /etc/needrestart/conf.d
+    echo "\$nrconf{restart} = 'a';" > /etc/needrestart/conf.d/99-xray-auto.conf
+    rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
+
+    # 2. 系统更新
+    execute_task "apt-get update -qq"  "刷新软件源"
+    execute_task "DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' upgrade" "系统组件升级"
+
+    # 3. 依赖安装
+    local DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
+    
+    echo -e "${INFO} 正在检查并安装系统依赖..."
+    for pkg in "${DEPENDENCIES[@]}"; do
+        if dpkg -s "$pkg" &>/dev/null; then
+            echo -e "${OK} 依赖已就绪: $pkg"
+            continue
+        fi
+
+        execute_task "apt-get install -y $pkg" "安装依赖  : $pkg"
+        
+        # 二次校验与修复
+        if ! dpkg -s "$pkg" &>/dev/null; then
+            echo -e "${WARN} 依赖 $pkg 安装校验失败！尝试修复源..."
+            apt-get update -qq --fix-missing
+            execute_task "apt-get install -y $pkg" "重试安装  : $pkg"
+            
+            if ! dpkg -s "$pkg" &>/dev/null; then
+                echo -e "${ERR} [FATAL] 核心依赖无法安装: $pkg"
+                exit 1
+            fi
+        fi
+    done
+
+    # 4. 调用安装函数
+    install_xray_robust
+    install_geodata_robust
+
+    echo -e "${INFO} 核心组件安装完毕 (Core Install Completed).\n"
+}
