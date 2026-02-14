@@ -40,10 +40,8 @@ fi
 
 # --- 3. 系统配置 ---
 source "$BASE_DIR/core/3_system.sh"
-# 自动设置防火墙、默认端口(443/8443)、BBR、Swap
-# 注意：此函数会导出 PORT_VISION 和 PORT_XHTTP 变量供后续使用
+# 自动设置防火墙、默认端口(443/8443)
 setup_firewall_and_security
-setup_kernel_optimization
 
 # --- 4. 生成配置 ---
 source "$BASE_DIR/core/4_config.sh"
