@@ -134,5 +134,5 @@ core_install() {
     install_xray_robust
     install_geodata_robust
 
-    echo -e "${INFO} 核心组件安装完毕 (Core Install Completed).\n"
+    echo -e "${INFO} ${GREEN}核心组件安装完毕${PLAIN} (Core Install Completed).\n"
 }
