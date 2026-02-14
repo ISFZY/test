@@ -76,10 +76,7 @@ toggle_private() {
     apply_changes
 }
 
-# =========================================================
 # 主交互逻辑
-# =========================================================
-
 while true; do
     get_status
     
@@ -91,8 +88,8 @@ while true; do
     echo -e "  BT / P2P 下载   : ${STATUS_BT}\033[K"
     echo -e "  私有 IP (局域网): ${STATUS_PRIVATE}\033[K"
     echo -e "---------------------------------------------------"
-    echo -e "  1. 切换 ${YELLOW}BT 下载封禁${PLAIN}  (Toggle BT Block)"
-    echo -e "  2. 切换 ${YELLOW}私有 IP 封禁${PLAIN} (Toggle Private IP)"
+    echo -e "  1. 切换 ${YELLOW}BT 下载封禁${PLAIN}"
+    echo -e "  2. 切换 ${YELLOW}私有 IP 封禁${PLAIN}"
     echo -e "---------------------------------------------------"
     echo -e "  0. 退出 (Exit)"
     echo -e ""
@@ -100,7 +97,7 @@ while true; do
     # 清除下方残留日志
     tput ed
 
-    # 输入监听 (原地纠错)
+    # 输入监听
     while true; do
         echo -ne "\r\033[K请输入选项 [0-2]: "
         read -n 1 -s -r choice

@@ -44,22 +44,46 @@ apply_sni() {
     read -n 1 -s -r -p "按任意键继续..."
 }
 
+# --- manual_change 函数 ---
 manual_change() {
     echo -e "\n${BLUE}--- 手动修改 SNI ---${PLAIN}"
-    echo -e "请输入您想要使用的伪装域名 (例如 www.samsung.com)"
-    read -p "域名: " input_domain
+    echo -e "请输入您想要使用的伪装域名 (例: www.example.com)"
+    echo -e "输入 0 取消操作"
+    echo -e "---------------------------------------------------"
 
-    if [ -z "$input_domain" ]; then echo "输入为空，取消操作。"; return; fi
+    while true; do
+        # 读取输入 (域名需要回车确认)
+        read -p "域名: " input_domain
 
-    echo -e "${INFO} 正在验证域名连通性..."
-    if curl -I -m 3 "https://${input_domain}" >/dev/null 2>&1; then
-        echo -e "${OK} 域名有效。"
-        apply_sni "$input_domain"
-    else
-        echo -e "${WARN} 该域名无法通过 HTTPS 连接，可能不支持 Reality。"
-        read -p "是否强制使用? (y/n) [n]: " force
-        if [[ "$force" == "y" ]]; then apply_sni "$input_domain"; else echo "操作已取消。"; fi
-    fi
+        # 0. 取消操作
+        if [ "$input_domain" == "0" ]; then
+            echo "操作已取消。"
+            return
+        fi
+
+        # 1. 检查是否为空
+        if [ -z "$input_domain" ]; then
+            echo -e "\033[1A\033[K${RED}输入不能为空，请重新输入${PLAIN}"
+            sleep 1
+            echo -ne "\r\033[K"
+            continue
+        fi
+
+        # 2. 正则验证域名格式 (允许字母数字、点、横杠，且必须包含至少一个点)
+        # 简单正则：^[a-zA-Z0-9] 开头，中间包含点，结尾不能是横杠
+        if [[ "$input_domain" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$ ]]; then
+            # 格式正确，直接应用，不再 curl 验证
+            echo -e "${OK} 格式验证通过。"
+            apply_sni "$input_domain"
+            break
+        else
+            # 错误处理：光标上移1行 -> 清除行 -> 显示红字 -> 暂停 -> 清除 -> 重绘输入框
+            echo -e "\033[1A\033[K${RED}域名格式无效 (例: www.example.com)${PLAIN}"
+            sleep 1
+            # 回到行首并清除报错信息，循环开始时会重新打印 "域名: "
+            echo -ne "\r\033[K"
+        fi
+    done
 }
 
 auto_select() {
@@ -85,8 +109,8 @@ auto_select() {
     tput cnorm
     echo -ne "\r\033[K"
 
-    echo -e "   延迟排序清单 (Latency List):"
-    
+    echo -e " 延迟排序清单:"
+    echo -e "---------------------------------------------------"    
     SORTED_DOMAINS=()
     local idx=1
     
@@ -110,20 +134,24 @@ auto_select() {
     
     local len=${#SORTED_DOMAINS[@]}
     
-    echo -ne "${YELLOW}请输入序号选择 [0-${len}]: ${PLAIN}"
-    read sel_idx
-    
-    if [ "$sel_idx" == "0" ]; then
-        # 0 = 取消
-        echo "操作已取消。"
-        return
-    elif [[ "$sel_idx" =~ ^[0-9]+$ ]] && [ "$sel_idx" -le "$len" ] && [ "$sel_idx" -gt 0 ]; then
-        local target_domain="${SORTED_DOMAINS[$((sel_idx-1))]}"
-        apply_sni "$target_domain"
-    else
-        echo -e "${RED}输入无效，操作已取消。${PLAIN}"
-        read -n 1 -s -r -p "按任意键继续..."
-    fi
+    while true; do
+        read -n 1 -s -p "请输入序号选择 [0-${len}]: " sel_idx
+        
+        if [ "$sel_idx" == "0" ]; then
+            echo "0" 
+            echo "操作已取消。"
+            return
+        elif [[ "$sel_idx" =~ ^[1-9]$ ]] && [ "$sel_idx" -le "$len" ]; then
+            echo "$sel_idx" 
+            local target_domain="${SORTED_DOMAINS[$((sel_idx-1))]}"
+            apply_sni "$target_domain"
+            return
+        else
+            echo -ne "\r\033[K${RED}输入无效${PLAIN}"
+            sleep 1
+            echo -ne "\r\033[K"
+        fi
+    done
 }
 
 # --- 主菜单 ---
@@ -140,12 +168,19 @@ while true; do
     echo -e "---------------------------------------------------"
     echo -e "  0. 退出"
     echo -e ""
-    read -p "请输入选项 [0-2]: " choice
+    
+    while true; do
+        read -n 1 -s -p "请输入选项 [0-2]: " choice
 
-    case "$choice" in
-        1) manual_change ;;
-        2) auto_select ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}输入无效${PLAIN}"; sleep 1 ;;
-    esac
+        case "$choice" in
+            1) manual_change; break ;; 
+            2) auto_select; break ;;
+            0) exit 0 ;;
+            *) 
+                echo -e "\r\033[K${RED}输入无效${PLAIN}"
+                sleep 1
+                echo -ne "\r\033[K"
+                ;;
+        esac
+    done
 done

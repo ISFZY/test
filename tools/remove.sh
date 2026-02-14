@@ -1,17 +1,12 @@
 #!/bin/bash
 
-# =========================================================
 # 定义颜色
-# =========================================================
 RED="\033[31m"
 GREEN="\033[32m"
 YELLOW="\033[33m"
 PLAIN="\033[0m"
 
-# =========================================================
 # 卸载逻辑
-# =========================================================
-
 # 1. 权限检查
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}Error: 请使用 sudo 或 root 用户运行此脚本！${PLAIN}"
@@ -31,18 +26,32 @@ echo -e "  4. 清理定时更新任务与系统配置残留"
 echo -e "${RED}=============================================================${PLAIN}"
 echo ""
 echo -ne "确认要彻底卸载吗？[y/n]: "
+
 while true; do
-    read -n 1 -r key
+
+    read -s -n 1 -r key
+
     case "$key" in
         [yY]) 
+
+            echo "y" 
             echo -e "\n${GREEN}>>> 操作已确认，开始卸载...${PLAIN}"
             break 
             ;;
         [nN]) 
+
+            echo "n" 
             echo -e "\n${YELLOW}>>> 操作已取消。${PLAIN}"
             exit 0 
             ;;
-        *) ;;
+        *) 
+
+            echo -ne "\r\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
+            
+            sleep 1
+            
+            echo -ne "\r\033[K确认要彻底卸载吗？[y/n]: "
+            ;;
     esac
 done
 
@@ -109,7 +118,7 @@ if command -v crontab &>/dev/null; then
     echo -e "   [OK] 已清理 GeoData 自动更新任务"
 fi
 
-# [新增] 清理系统配置残留
+# 清理系统配置残留
 if [ -f "/etc/needrestart/conf.d/99-xray-auto.conf" ]; then
     rm -f "/etc/needrestart/conf.d/99-xray-auto.conf"
     echo -e "   [OK] 已删除 needrestart 静默配置"

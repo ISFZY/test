@@ -113,10 +113,10 @@ menu_brush_ip() {
     read -n 1 -s -r -p "按任意键继续..."
 }
 
-# --- 主菜单 ---
-while true; do
+# --- 主菜单逻辑 ---
+show_menu_ui() {
     clear
-    # 状态栏使用图标，更直观
+    # 状态栏图标
     if check_warp_socket; then STATUS_SOCK="${GREEN}● 运行中${PLAIN}"; else STATUS_SOCK="${RED}● 未运行${PLAIN}"; fi
     if check_xray_outbound; then STATUS_XRAY="${GREEN}● 已连接${PLAIN}"; else STATUS_XRAY="${YELLOW}● 未连接${PLAIN}"; fi
     
@@ -129,18 +129,41 @@ while true; do
     echo -e "${BLUE}===================================================${PLAIN}"
     echo -e "  WARP 服务: ${STATUS_SOCK}    Xray 接口: ${STATUS_XRAY}"
     echo -e "---------------------------------------------------"
-    echo -e "  1. 安装 / 重装 WARP   ${GRAY}(自动配置 Socks5 端口 40000)${PLAIN}"
-    echo -e "  2. 彻底卸载 WARP      ${GRAY}(卸载并清理残留规则)${PLAIN}"
-    echo -e "  3. 优选 WARP IP       ${GRAY}(当 Netflix 依然看不了时使用)${PLAIN}"
+    echo -e "  1. 安装/重装 WARP   ${GRAY}(自动配置 Socks5 端口 40000)${PLAIN}"
+    echo -e "  2. 卸载 WARP        ${GRAY}(卸载并清理残留规则)${PLAIN}"
+    echo -e "  3. 优选 WARP IP     ${GRAY}(当 Netflix 依然看不了时使用)${PLAIN}"
     echo -e "---------------------------------------------------"
-    echo -e "  [分流策略控制台]"
-    echo -e "  4. Netflix 媒体库 ....... [ ${STATUS_NF} ]"
-    echo -e "  5. 全能 AI 分流包 ....... [ ${STATUS_AI} ]"
+    echo -e "  ${BLUE}[分流策略控制台]${PLAIN}"
+    echo -e "  4. 开启/关闭 Netflix 媒体库 ........ [ ${STATUS_NF} ]"
+    echo -e "  5. 开启/关闭 AI 分流包      ........ [ ${STATUS_AI} ]"
     echo -e "     ${GRAY}(含 OpenAI, Claude, Grok)${PLAIN}"
     echo -e "---------------------------------------------------"
     echo -e "  0. 退出 (Exit)"
     echo -e ""
-    read -p "请输入选项 [0-5]: " choice
+}
+
+# 主循环
+while true; do
+    show_menu_ui
+    
+    while true; do
+
+        echo -ne "\r请输入选项 [0-5]: "
+        
+        read -n 1 -s choice
+        
+        if [[ "$choice" =~ ^[0-5]$ ]]; then
+            echo "$choice"
+            break
+        else
+
+            echo -ne "\r${RED}输入错误！只能输入 0-5 之间的数字${PLAIN}\033[K"
+            sleep 1
+
+        fi
+    done
+
+    # 执行逻辑
     case "$choice" in
         1) install_warp ;;
         2) uninstall_warp ;;
