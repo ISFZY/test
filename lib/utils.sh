@@ -53,26 +53,27 @@ print_banner() {
     echo -e "${BLUE}===============================================================${PLAIN}"
     echo -e "${BLUE}          Xray Auto Installer                                 ${PLAIN}"
     echo -e "${BLUE}===============================================================${PLAIN}"
-    echo -e "${BLUE}AUTHOR  :${PLAIN} ${AUTHOR}"
-    echo -e "${BLUE}PROJECT :${PLAIN} ${PROJECT_URL}"
+    echo -e "${BLUE}Author  :${PLAIN} ${AUTHOR}"
+    echo -e "${BLUE}Project :${PLAIN} ${PROJECT_URL}"
     echo -e "${BLUE}===============================================================${PLAIN}"
     echo ""
 }
 
 # 7. 简单的锁机制
-check_lock() {
+lock_acquire() {
     local lock_file="/tmp/xray_install.lock"
     if [ -f "$lock_file" ]; then
         local pid=$(cat "$lock_file")
         if kill -0 "$pid" 2>/dev/null; then
             echo -e "${ERR} 检测到脚本正在运行 (PID: $pid)，请勿重复执行！"
-            exit 1
+            return 1
         else
             rm -f "$lock_file"
         fi
     fi
     echo $$ > "$lock_file"
     trap 'rm -f "/tmp/xray_install.lock"; exit' INT TERM EXIT
+    return 0
 }
 
 # 8. 交互确认函数
@@ -95,10 +96,11 @@ confirm_installation() {
                 echo -e "${WARN} 用户取消安装。"
                 exit 1 
                 ;;
-            echo -ne "\r\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
-            sleep 1
-            echo -ne "\r\033[K确认要彻底卸载吗？[y/n]: "
-            ;;
+            *)
+                echo -ne "\r\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
+                sleep 1
+                echo -ne "\r\033[K"
+                ;;
         esac
     done
 }
