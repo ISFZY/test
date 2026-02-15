@@ -88,7 +88,7 @@ confirm_installation() {
         case "$key" in
             y|Y)
                 echo "y"
-                echo -e "${INFO} 用户确认，开始执行..." 
+                echo -e "${INFO} ${GREEN}用户确认，开始执行安装程序...${PLAIN}" 
                 break 
                 ;;
             n|N)
