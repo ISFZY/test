@@ -1,11 +1,8 @@
 #!/bin/bash
 # --- 2. 安装流程 (Core Installation) ---
 
-# ==========================================
 # 辅助函数定义 (Helpers)
-# ==========================================
-
-# 1. 任务执行器 (UI 优化版：单行刷新)
+# 1. 任务执行器
 execute_task() {
     local cmd="$1"
     local desc="$2"
@@ -31,7 +28,7 @@ execute_task() {
     fi
 }
 
-# 2. Xray 核心安装逻辑 (逻辑不变，UI跟随 execute_task 变清爽)
+# 2. Xray 核心安装逻辑 (逻辑不变，UI跟随 execute_task )
 install_xray_robust() {
     local max_tries=3
     local count=0
@@ -40,7 +37,7 @@ install_xray_robust() {
     
     if [ -n "$FIXED_VER" ]; then
         VER_ARG="--version $FIXED_VER"
-        # echo -e "${INFO} 版本锁定: ${YELLOW}${FIXED_VER}${PLAIN}" # 可选：觉得乱可以注释掉
+        # echo -e "${INFO} 版本锁定: ${YELLOW}${FIXED_VER}${PLAIN}" # 可选
     fi
     
     mkdir -p /usr/local/share/xray/
@@ -109,9 +106,7 @@ install_geodata_robust() {
     echo -e "    └─ 自动更新: ${GREEN}已配置 (每周日 4:00)${PLAIN}"
 }
 
-# ==========================================
 # 主入口函数 (Main Function)
-# ==========================================
 core_install() {
     echo -e "\n${BLUE}--- 2. 核心组件 (Core) ---${PLAIN}"
 
@@ -126,7 +121,6 @@ core_install() {
 
     # 3. 依赖安装 (静默处理)
     # 这里的策略是：先显示“正在检查依赖”，然后只对缺失的包进行安装提示
-    # 如果全部已安装，瞬间闪过，非常清爽
     
     local DEPENDENCIES=("curl" "wget" "tar" "unzip" "fail2ban" "rsyslog" "chrony" "iptables" "iptables-persistent" "qrencode" "jq" "cron" "python3-systemd" "lsof")
     local MISSING_PKGS=()
