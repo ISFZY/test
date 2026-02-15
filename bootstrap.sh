@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==============================================================================
-# Project: https://github.com/ISFZY/Xray-Auto
+# Project: https://github.com/ISFZY/test
 # Author : ISFZY
 # ==============================================================================
 
@@ -13,7 +13,7 @@ PLAIN='\033[0m'
 
 # 定义安装目录
 INSTALL_DIR="xray-install"
-REPO_URL="https://github.com/ISFZY/Xray-Auto.git"
+REPO_URL="https://github.com/ISFZY/test.git"
 
 # 1. 分支选择逻辑 (Branch Selection)
 #    优先读取用户传入的第一个参数 (例如: bash bootstrap.sh dev)
