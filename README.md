@@ -41,7 +41,7 @@
 使用 `root` 用户运行以下命令即可。引导脚本会自动安装 Git、克隆仓库并启动安装程序。
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
 
 ```
 
@@ -55,7 +55,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap
 apt update && apt install -y git
 
 # 2. 克隆仓库
-git clone https://github.com/ISFZY/Xray-Auto.git xray-install
+git clone https://github.com/ISFZY/test.git xray-install
 
 # 3. 运行脚本
 cd xray-install
@@ -70,7 +70,7 @@ chmod +x install.sh
 如果你想彻底移除 Xray 及相关配置，请运行（或服务端输入`remove`）：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/remove.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.sh)
 
 ```
 
