@@ -1,4 +1,10 @@
-# 🚀 Xray Auto Installer
+<div align="center">
+
+[**中文**](README.md) | [**English**](README_EN.md)
+
+</div>
+
+# 🚀 Xray 一键脚本
 
 **全自动、模块化的 Xray 部署脚本**
 
@@ -13,22 +19,20 @@
 
 ## ✨ 功能特性 (Features)
 
-* **📦 模块化设计**: 代码拆分为 Core、Lib、Tools 三大模块，逻辑清晰。
+* **📦 模块化设计**: 代码分为 Core、Lib、Tools 三大模块，逻辑清晰。
 * **🔒 最新协议**: 支持 Vision 和 XHTTP 协议，集成 Reality 伪装。
 * **🛡️ 安全加固**: 自动配置 Fail2ban 和防火墙。
 * **🛠️ 丰富工具箱**: 内置 WARP、BBR、端口管理、SNI 优选等工具。
 
----
 
 ## 📋 环境要求 (Requirements)
 
-* **操作系统**: Debian 10+, Ubuntu 20.04+, CentOS 7+ (推荐 Debian 11/12)
+* **操作系统**: Debian 10+, Ubuntu 20.04+ (推荐 Debian 11/12)
 * **架构**: amd64, arm64
 * **权限**: 需要 `root` 权限
-* **端口**: 默认占用 `443` (Vision) 和 `8443` (XHTTP)，安装过程中可自定义。
+* **端口**: 默认使用高位随机端口 (Vision) 和 (XHTTP)，。
 * **客户端**: 请确保你的代理端支持该种协议（如 Shadowrocket, V2rayN...)
 
----
 
 ## 📥 快速安装 (Quick Start)
 
@@ -37,9 +41,10 @@
 使用 `root` 用户运行以下命令即可。引导脚本会自动安装 Git、克隆仓库并启动安装程序。
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
 
 ```
+
 
 ### 🛠️ 备用：手动安装 (Manual)
 
@@ -50,7 +55,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
 apt update && apt install -y git
 
 # 2. 克隆仓库
-git clone https://github.com/ISFZY/test.git xray-install
+git clone https://github.com/ISFZY/Xray-Auto.git xray-install
 
 # 3. 运行脚本
 cd xray-install
@@ -58,16 +63,18 @@ chmod +x install.sh
 ./install.sh
 
 ```
----
+
+
 ## 🗑️ 卸载 (Uninstall)
 
 如果你想彻底移除 Xray 及相关配置，请运行（或服务端输入`remove`）：
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/remove.sh)
 
 ```
----
+
+
 ## 🎮 使用指南 (Usage)
 
 安装完成后，脚本会将管理工具注册到系统路径。你可以直接在终端输入以下命令：
@@ -86,8 +93,9 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.s
 | `f2b` | **Fail2ban** | 查看封禁 IP、解封 IP、调整封禁策略。 |
 | `backup` | **备份与恢复** | 查询、备份，恢复配置。 |
 | `sniff` | **流量嗅探** | 开启/关闭 流量嗅探及其日志。 |
+| `zone` | **时区管理** | 时区与时间设置。 |
 | `remove` | **一键卸载** | 移除Xray及全部安装。 |
----
+
 
 ### 📝 客户端配置参考
 | 参数 | 值 (示例) | 说明 |
@@ -103,7 +111,6 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.s
 | **ShortId** | `a1b2...` | 输入 `info` 获取 |
 | **路径 (Path)** | `/8d39f310` | **仅 xhttp 节点填写** |
 
----
 
 ## 📂 项目结构 (Structure)
 
@@ -126,7 +133,7 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.s
     ├── net.sh
     ├── ...
 ```
----
+
 
 ## ⚠️ 免责声明（Disclaimer）
 
@@ -135,6 +142,5 @@ bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.s
 3.  **无担保条款**: 本软件按“原样”提供，不提供任何形式的明示或暗示担保。作者不对因使用本脚本而导致的任何直接或间接损失（包括但不限于数据丢失、系统崩溃、IP 被封锁、服务器被服务商暂停等）负责。
 4.  **第三方组件**: 本脚本集成了第三方开源程序（如 Xray-core），其版权和责任归原作者所有。本脚本作者不对第三方程序的安全性或稳定性做出保证。
 5.  **许可证**: 本项目遵循 **GNU General Public License v3.0** 开源协议，详细条款请参阅仓库内的 `LICENSE` 文件。
----
 
 **Made with ❤️ by ISFZY**
