@@ -47,7 +47,7 @@ This project is a highly modular Shell script designed for the rapid deployment 
 Run the following command as the `root` user. The bootstrap script will automatically install Git, clone the repository, and start the installer.
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/bootstrap.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/bootstrap.sh)
 
 ```
 
@@ -59,7 +59,7 @@ If you cannot connect to GitHub Raw, you can try cloning manually:
 apt update && apt install -y git
 
 # 2. Clone the repository
-git clone https://github.com/ISFZY/Xray-Auto.git xray-install
+git clone https://github.com/ISFZY/test.git xray-install
 
 # 3. Run the script
 cd xray-install
@@ -74,7 +74,7 @@ chmod +x install.sh
 If you want to completely remove Xray and its related configurations, run the following (or type remove in the server terminal):
 
 ```bash
-bash <(curl -sL https://raw.githubusercontent.com/ISFZY/Xray-Auto/main/tools/remove.sh)
+bash <(curl -sL https://raw.githubusercontent.com/ISFZY/test/main/tools/remove.sh)
 
 ```
 
