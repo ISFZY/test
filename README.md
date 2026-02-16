@@ -30,7 +30,7 @@
 * **操作系统**: Debian 10+, Ubuntu 20.04+ (推荐 Debian 11/12)
 * **架构**: amd64, arm64
 * **权限**: 需要 `root` 权限
-* **端口**: 默认使用高位随机端口 (Vision) 和 (XHTTP)，。
+* **端口**: 默认使用高位随机端口 (Vision) 和 (XHTTP)
 * **客户端**: 请确保你的代理端支持该种协议（如 Shadowrocket, V2rayN...)
 
 
