@@ -89,7 +89,7 @@ manual_change() {
 auto_select() {
     echo -e "\n${BLUE}--- 自动优选 SNI (寻找最低延迟) ---${PLAIN}"
     
-    DOMAINS=("www.icloud.com" "www.apple.com" "itunes.apple.com" "learn.microsoft.com" "www.bing.com" "www.tesla.com")
+    DOMAINS=("www.icloud.com" "www.apple.com" "itunes.apple.com" "learn.microsoft.com" "www.bing.com" "www.tesla.com" "www.nvidia.com" "www.intel.com" "www.amazon.com")
     
     TEMP_FILE=$(mktemp)
     echo -e "${INFO} 正在 Ping 检测..."
