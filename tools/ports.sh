@@ -101,7 +101,7 @@ change_ssh() {
     echo ""
     
     read -n 1 -p "我已知晓风险，确认继续修改? (y/n): " confirm
-    echo ""
+
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo -e "${YELLOW}>>> 操作已取消。${PLAIN}"; sleep 1; return
     fi
@@ -177,10 +177,9 @@ while true; do
     echo -e ""
     
     while true; do
-        read -n 1 -p "请输入选项 [0-3]: " choice
+        read -p "请输入选项 [0-3]: " choice
         case "$choice" in
             1|2|3|0)
-                echo "" 
                 break
                 ;;
             *)
