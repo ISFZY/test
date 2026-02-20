@@ -300,9 +300,11 @@ del_user() {
         local email=$(jq -r ".inbounds[0].settings.clients[$array_idx].email // \"无备注\"" "$CONFIG_FILE")
 
         # --- 确认删除 ---
-        echo -e "\033[1A\033[K确认删除用户: ${RED}$email${PLAIN} ? [y/n]: "
-        read -n 1 -r key
-        echo ""
+        read -p $'\033[1A\033[K确认删除用户: \033[31m'"$email"$'\033[0m ? [y/n]: ' key
+        # 或者保留 echo，仅修改 read：
+        # echo -ne "\033[1A\033[K确认删除用户: ${RED}$email${PLAIN} ? [y/n]: "
+        # read -r key
+        # (删掉 echo "")
 
         case "$key" in
             [yY])
