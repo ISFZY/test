@@ -37,22 +37,36 @@ update_geodata() {
         "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
     )
     
-    # 创建临时文件以保障下载过程不影响正在运行的服务
     local tmp_ip=$(mktemp)
     local tmp_site=$(mktemp)
+    local max_retries=3
+    local attempt=1
+    local success=false
     
-    # 纯直连下载
-    echo -e "${INFO} 直连拉取 geoip.dat ..."
-    curl -kL --retry 3 -o "$tmp_ip" "${urls[0]}"
+    # 增加业务层级的重试循环
+    while [ $attempt -le $max_retries ]; then
+        echo -e "   [-] 直连拉取 GeoData (尝试 $attempt/$max_retries) ..."
+        
+        # 纯直连下载
+        curl -kL --retry 3 -o "$tmp_ip" "${urls[0]}"
+        curl -kL --retry 3 -o "$tmp_site" "${urls[1]}"
+        
+        # 核心防线：文件大小校验 (大于 1000KB)
+        local size_ip=$(du -k "$tmp_ip" | awk '{print $1}')
+        local size_site=$(du -k "$tmp_site" | awk '{print $1}')
+        
+        if [ -n "$size_ip" ] && [ "$size_ip" -gt 1000 ] && [ -n "$size_site" ] && [ "$size_site" -gt 1000 ]; then
+            success=true
+            break # 校验通过，跳出重试循环
+        else
+            echo -e "   [WARN] 第 $attempt 次拉取失败 (文件损坏或过小)，准备重试..."
+            sleep 2 # 停顿 2 秒防屏蔽
+            attempt=$((attempt + 1))
+        fi
+    done
     
-    echo -e "${INFO} 直连拉取 geosite.dat ..."
-    curl -kL --retry 3 -o "$tmp_site" "${urls[1]}"
-    
-    # 核心防线：文件大小校验 (必须大于 1000KB 即 1MB)
-    local size_ip=$(du -k "$tmp_ip" | awk '{print $1}')
-    local size_site=$(du -k "$tmp_site" | awk '{print $1}')
-    
-    if [ -n "$size_ip" ] && [ "$size_ip" -gt 1000 ] && [ -n "$size_site" ] && [ "$size_site" -gt 1000 ]; then
+    # 循环结束后，判断最终结果
+    if [ "$success" = true ]; then
         echo -e "${OK} 校验通过，正在应用新规则..."
         mv -f "$tmp_ip" "$share_dir/geoip.dat"
         mv -f "$tmp_site" "$share_dir/geosite.dat"
@@ -61,7 +75,7 @@ update_geodata() {
         systemctl restart xray
         echo -e "\n${GREEN}>>> GeoData 更新完成！服务已重启以加载新规则。${PLAIN}"
     else
-        echo -e "\n${RED}>>> 更新失败：GitHub 下载异常，文件损坏或过小！${PLAIN}"
+        echo -e "\n${RED}>>> 更新失败：连续 $max_retries 次拉取均异常！${PLAIN}"
         echo -e "${YELLOW}已自动拦截损坏的规则库，当前 Xray 服务不受影响。${PLAIN}"
         rm -f "$tmp_ip" "$tmp_site"
     fi
