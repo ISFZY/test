@@ -30,6 +30,18 @@ if [[ $EUID -ne 0 ]]; then
     exit 1
 fi
 
+# ---------------- 新增：纯 IPv6 环境 GitHub 连通性修复 ----------------
+# 简单的纯 v6 探测：如果 ping 不通 8.8.8.8，但能 ping 通 Cloudflare v6，则注入 DNS64
+if ! ping -c 1 -W 2 8.8.8.8 &> /dev/null; then
+    if ping6 -c 1 -W 2 2606:4700:4700::1111 &> /dev/null; then
+        echo -e "${YELLOW}检测到纯 IPv6 环境，正在配置 DNS64 (Trex) 以连接 GitHub 等 IPv4 资源...${PLAIN}"
+        # 备份原有的 resolv.conf
+        cp /etc/resolv.conf /etc/resolv.conf.bak 2>/dev/null
+        # 写入免费且稳定的公共 DNS64
+        echo -e "nameserver 2a00:1098:2b::1\nnameserver 2a00:1098:2fac::1" > /etc/resolv.conf
+    fi
+fi
+
 # 检查并安装 Git
 if ! command -v git &> /dev/null; then
     echo -e "${YELLOW}检测到未安装 Git，正在自动安装...${PLAIN}"
