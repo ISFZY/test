@@ -100,13 +100,29 @@ change_ssh() {
     echo -e "${RED}################################################################${PLAIN}"
     echo ""
     
-    read -n 1 -p "我已知晓风险，确认继续修改? (y/n): " confirm
-
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-        echo -e "${YELLOW}>>> 操作已取消。${PLAIN}"; sleep 1; return
-    fi
-
-    echo ""
+    while true; do
+        read -p "我已知晓风险，确认继续修改？ (y/n): " confirm
+        case "$confirm" in
+            [yY]) 
+                # 输入 y，跳出循环继续往下执行修改
+                break 
+                ;;
+            [nN]) 
+                # 输入 n，安全退出回主菜单
+                echo -e "${YELLOW}>>> 操作已取消。${PLAIN}"
+                sleep 1
+                return 
+                ;;
+            *) 
+                # 输入其他乱码：光标上移一行并清除，提示错误
+                echo -e "\033[1A\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
+                sleep 1
+                # 再次上移清除报错，让循环重新打印正常的提示语
+                echo -ne "\033[1A\033[K"
+                ;;
+        esac
+    done
+	
     # 调用输入函数，如果返回非0 (即用户回车取消)，则直接 return
     if ! input_and_validate "SSH" "$CURRENT_SSH"; then
         sleep 1; return
