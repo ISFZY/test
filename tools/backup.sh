@@ -78,13 +78,11 @@ restore_backup() {
         
         if [[ "$key" =~ ^[0-9]$ ]]; then
             if [ "$key" -eq 0 ]; then
-                echo "$key"
                 echo -e "\n操作已取消。"
                 return
             fi
             
             if [ "$key" -le "$limit" ] && [ "$key" -gt 0 ]; then
-                echo "$key"
                 choice=$key
                 break
             else
@@ -120,11 +118,9 @@ restore_backup() {
         
         case "$key" in
             [yY]) 
-                echo "$key"
                 break 
                 ;;
             [nN]) 
-                echo "$key"
                 echo -e "\n操作已取消。"
                 return 
                 ;;
@@ -200,9 +196,6 @@ while true; do
 
     case "$key" in
         [0-3])
-            # 输入有效：回显
-            echo "$key"
-            echo ""
             
             case "$key" in
                 1) 
