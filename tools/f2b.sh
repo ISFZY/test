@@ -179,7 +179,7 @@ toggle_service() {
     fi
 
     # 3. 读取单字符输入
-    read -n 1 -s -r -p "$prompt_msg" input
+    read -r -p "$prompt_msg" input
     
     # 4. 逻辑判断
     case "$input" in
@@ -580,7 +580,7 @@ menu_exponential() {
         local choice=""
         while true; do
 
-            read -n 1 -s -p "请选择 [0-3]: " choice
+            read -p "请选择 [0-3]: " choice
             
             # 正则校验：仅允许 0, 1, 2, 3
             if [[ "$choice" =~ ^[0-3]$ ]]; then
@@ -649,12 +649,11 @@ while true; do
         # -n 1: 读取单个字符，无需回车
         # -s:   静默模式
         # -p:   提示文案
-        read -n 1 -s -p "请输入选项 [0-8]: " choice
+        read -p "请输入选项 [0-8]: " choice
         
         # 校验是否为 0-8 的单数字
         if [[ "$choice" =~ ^[0-8]$ ]]; then
             # 输入正确 -> 显式打印出这个数字
-            echo "$choice"
             break
         else
             # --- 核心逻辑：原地替换报错 ---
