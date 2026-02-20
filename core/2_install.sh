@@ -87,7 +87,7 @@ install_geodata_robust() {
     local success=false
 
     # 业务层级的重试循环 (最多尝试 3 次)
-    while [ $attempt -le $max_retries ]; then
+    while [ $attempt -le $max_retries ]; do
         echo -e "   [-] 直连拉取 GeoData (尝试 $attempt/$max_retries) ..."
         
         # curl 自身的 --retry 用于处理底层的断流
