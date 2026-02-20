@@ -117,6 +117,6 @@ fi
 echo -e "\n-----------------------------------------------------------------------------------------------------------------"
 echo -e " ${BLUE}管理命令:${PLAIN}"
 echo -e " ${YELLOW}info${PLAIN} (管理员信息) | ${YELLOW}net${PLAIN} (网络) | ${YELLOW}xw${PLAIN} (WARP分流) | ${YELLOW}swap${PLAIN}  (内存) | ${YELLOW}backup${PLAIN} (备份) | ${YELLOW}f2b${PLAIN} (防火墙) | ${YELLOW}sniff${PLAIN}  (流量嗅探)"
-echo -e " ${YELLOW}user${PLAIN} (多用户管理) | ${YELLOW}sni${PLAIN} (域名) | ${YELLOW}bt${PLAIN} (BT封禁)   | ${YELLOW}ports${PLAIN} (端口) | ${YELLOW}zone${PLAIN}   (时区) | ${YELLOW}bbr${PLAIN} (内核)   | ${YELLOW}remove${PLAIN} (卸载)"
+echo -e " ${YELLOW}user${PLAIN} (多用户管理) | ${YELLOW}sni${PLAIN} (域名) | ${YELLOW}bt${PLAIN} (BT封禁)   | ${YELLOW}ports${PLAIN} (端口) | ${YELLOW}zone${PLAIN}   (时区) | ${YELLOW}bbr${PLAIN} (内核)   | ${YELLOW}updata${PLAIN} (内核更新) | ${YELLOW}remove${PLAIN} (卸载)"
 echo -e "-----------------------------------------------------------------------------------------------------------------"
 echo ""
