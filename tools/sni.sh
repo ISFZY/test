@@ -135,14 +135,12 @@ auto_select() {
     local len=${#SORTED_DOMAINS[@]}
     
     while true; do
-        read -n 1 -s -p "请输入序号选择 [0-${len}]: " sel_idx
+        read -p "请输入序号选择 [0-${len}]: " sel_idx
         
         if [ "$sel_idx" == "0" ]; then
-            echo "0" 
             echo "操作已取消。"
             return
         elif [[ "$sel_idx" =~ ^[1-9]$ ]] && [ "$sel_idx" -le "$len" ]; then
-            echo "$sel_idx" 
             local target_domain="${SORTED_DOMAINS[$((sel_idx-1))]}"
             apply_sni "$target_domain"
             return
@@ -170,7 +168,7 @@ while true; do
     echo -e ""
     
     while true; do
-        read -n 1 -s -p "请输入选项 [0-2]: " choice
+        read -p "请输入选项 [0-2]: " choice
 
         case "$choice" in
             1) manual_change; break ;; 
