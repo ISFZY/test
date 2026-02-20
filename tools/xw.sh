@@ -148,12 +148,9 @@ while true; do
     
     while true; do
 
-        echo -ne "\r请输入选项 [0-5]: "
-        
-        read -n 1 -s choice
-        
+        read -p $'\r请输入选项 [0-5]: ' choice
         if [[ "$choice" =~ ^[0-5]$ ]]; then
-            echo "$choice"
+
             break
         else
 
