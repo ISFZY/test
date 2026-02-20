@@ -119,9 +119,9 @@ pre_flight_check() {
 check_net_stack() {
     HAS_V4=false; HAS_V6=false; CURL_OPT=""
     
-    # 使用 curl 探测网络 (超时时间 3秒)
-    if curl -s4m 3 https://1.1.1.1 >/dev/null 2>&1; then HAS_V4=true; fi
-    if curl -s6m 3 https://2606:4700:4700::1111 >/dev/null 2>&1; then HAS_V6=true; fi
+    # 修复 1：增加 -k 参数，防止系统 CA 证书过期导致的网络误判
+    if curl -s4mk 3 https://1.1.1.1 >/dev/null 2>&1; then HAS_V4=true; fi
+    if curl -s6mk 3 https://2606:4700:4700::1111 >/dev/null 2>&1; then HAS_V6=true; fi
 
     if [ "$HAS_V4" = true ] && [ "$HAS_V6" = true ]; then
         NET_TYPE="Dual-Stack (双栈)"
@@ -135,6 +135,10 @@ check_net_stack() {
         NET_TYPE="IPv6 Only"
         CURL_OPT="-6"
         DOMAIN_STRATEGY="UseIPv6"
+        
+        # 修复 2：为安装过程中的后续 curl 下载强制保持 DNS64 状态
+        echo -e "${INFO} 为纯 IPv6 环境配置 NAT64/DNS64 网关..."
+        echo -e "nameserver 2a00:1098:2b::1\nnameserver 2a00:1098:2fac::1" > /etc/resolv.conf
     else
         echo -e "${ERR} 无法连接互联网，请检查网络配置！"
         exit 1
