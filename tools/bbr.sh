@@ -106,7 +106,7 @@ while true; do
 
     while true; do
         echo -ne "\r\033[K请输入选项 [0-2]: "
-        read -n 1 -s -r choice
+        read -r choice
         case "$choice" in
             1|2|0) break ;;
             *) echo -ne "\r\033[K${RED}输入无效...${PLAIN}"; sleep 0.5 ;;
