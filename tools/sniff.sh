@@ -198,12 +198,7 @@ show_menu() {
 show_menu
 
 while true; do
-    # 打印提示符（-n 不换行），准备读取
-    echo -ne "请输入选项 [0-5]: "
-
-    # -n 1: 限制只读取1个字符
-    # -s:   静默模式
-    read -n 1 -s choice
+    read -p "请输入选项 [0-5]: " choice
 
     case "$choice" in
         [0-5])
