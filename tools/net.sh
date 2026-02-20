@@ -229,14 +229,8 @@ while true; do
 
     # 3. 交互逻辑 (原地提示 1 秒后恢复)
     while true; do
-        # 打印输入提示符
-        echo -ne "请输入选项 [0-4]: " 
-        
-        # 读取输入 (1个字符)
-        read -n 1 choice
-        
-        # 必须补换行，否则后续光标位置会乱
-        echo "" 
+        # 将提示语合并进 read
+        read -p "请输入选项 [0-4]: " choice
 
         # 退出逻辑
         if [[ "$choice" == "0" ]]; then
