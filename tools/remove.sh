@@ -34,13 +34,11 @@ while true; do
     case "$key" in
         [yY]) 
 
-            echo "y" 
             echo -e "\n${GREEN}>>> 操作已确认，开始卸载...${PLAIN}"
             break 
             ;;
         [nN]) 
 
-            echo "n" 
             echo -e "\n${YELLOW}>>> 操作已取消。${PLAIN}"
             exit 0 
             ;;
