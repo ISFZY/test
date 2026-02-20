@@ -96,8 +96,9 @@ install_geodata_robust() {
         ln -sf "$file_path" "$link_path"
     done
 
-    # 简化的自动更新设置提示
-    local update_cmd="curl -L -o $share_dir/geoip.dat ${files[geoip.dat]} && curl -L -o $share_dir/geosite.dat ${files[geosite.dat]} && /usr/bin/systemctl restart xray"
+    # 简化的自动更新设置提示 (加入加速代理与重试机制，防止纯 v6 失联)
+    local proxy_prefix="https://ghproxy.net/"
+    local update_cmd="curl -kL --retry 3 -o $share_dir/geoip.dat ${proxy_prefix}${files[geoip.dat]} && curl -kL --retry 3 -o $share_dir/geosite.dat ${proxy_prefix}${files[geosite.dat]} && /usr/bin/systemctl restart xray"
     local cron_job="0 4 * * 0 $update_cmd >/dev/null 2>&1"
     
     if ! command -v crontab &>/dev/null; then apt-get install -y cron &>/dev/null; fi
