@@ -83,23 +83,25 @@ confirm_installation() {
     local prompt_msg="确认继续安装? [y/n]: "
     
     while true; do
-        echo -ne "${prompt_msg}"
-        read -n 1 -s key
+        # 合并提示语，去掉 -n 1 和 -s
+        read -p "$prompt_msg" key
         case "$key" in
             y|Y)
-                echo "y"
+                # 删掉手动 echo "y"
                 echo -e "${INFO} ${GREEN}用户确认，开始执行安装程序...${PLAIN}" 
                 break 
                 ;;
             n|N)
-                echo "n"
+                # 删掉手动 echo "n"
                 echo -e "${WARN} 用户取消安装。"
                 exit 1 
                 ;;
             *)
-                echo -ne "\r\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
+                # 报错逻辑改为：光标上移一行并清除，覆盖刚才的错误输入
+                echo -e "\033[1A\033[K${RED}错误：必须输入 y 或 n ${PLAIN}"
                 sleep 1
-                echo -ne "\r\033[K"
+                # 再次上移清除报错，让循环重新打印正常的提示语
+                echo -ne "\033[1A\033[K"
                 ;;
         esac
     done
