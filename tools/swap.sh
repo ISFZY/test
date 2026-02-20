@@ -203,10 +203,9 @@ while true; do
     
     # 循环读取输入，直到输入正确
     while true; do
-        read -n 1 -s -r -p "请输入选项 [0-3]: " choice
+        read -p "请输入选项 [0-3]: " choice
         case "$choice" in
             0|1|2|3)
-                echo ""
                 break
                 ;;
             *)
