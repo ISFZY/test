@@ -49,22 +49,22 @@ pre_flight_check() {
                 # --- 交互输入 ---
                 local kill_choice=""
                 while true; do
-                    # -n 1: 读1个字符; -s: 静默
-                    echo -ne "是否强制终止占用进程? (y/n) [n]: "
-                    read -n 1 -s raw_input
+                    # 移除 echo -ne 和 -n 1，改为标准 read -p
+                    read -p "是否强制终止占用进程? (y/n) [n]: " raw_input
                     
                     # 1. 处理直接回车 (默认为 n)
                     if [ -z "$raw_input" ]; then
-                        echo "n" # 回显默认值
+                        # 删掉手动 echo "n"
                         kill_choice="n"
                         break
                     fi
 
                     # 2. 校验输入 (不区分大小写)
                     if [[ "$raw_input" =~ ^[yYnN]$ ]]; then
-                        echo "$raw_input" # 回显用户按键
+                        # 删掉手动 echo "$raw_input"
                         kill_choice="$raw_input"
                         break
+
                     else
                         # 3. 错误处理
                         # A. 打印出错误的字符(让用户知道按了啥)并换行
