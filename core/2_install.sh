@@ -70,41 +70,67 @@ install_xray_robust() {
 
 # 3. GeoData 数据库安装逻辑
 install_geodata_robust() {
+    echo -e "${INFO} 正在安装 GeoData 路由规则库..."
+    
     local share_dir="/usr/local/share/xray"
-    local bin_dir="/usr/local/bin"
     mkdir -p "$share_dir"
     
-    declare -A files
-    files["geoip.dat"]="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
-    files["geosite.dat"]="https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    local urls=(
+        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    )
+    
+    local tmp_ip=$(mktemp)
+    local tmp_site=$(mktemp)
+    local max_retries=3
+    local attempt=1
+    local success=false
 
-    # echo -e "${INFO} 下载规则数据库..." # 这一行也可以省掉，直接看下面的下载进度
-
-    for name in "${!files[@]}"; do
-        local url="${files[$name]}"
-        local file_path="$share_dir/$name"
-        local link_path="$bin_dir/$name"
-
-        execute_task "curl -L -o $file_path $url" "下载资源 $name"
-
-        # 校验逻辑保持不变
-        local fsize=$(du -k "$file_path" 2>/dev/null | awk '{print $1}')
-        if [ ! -f "$file_path" ] || [ -z "$fsize" ] || [ "$fsize" -lt 50 ]; then
-            execute_task "curl -L -o $file_path $url" "校验失败，重试下载 $name"
+    # 业务层级的重试循环 (最多尝试 3 次)
+    while [ $attempt -le $max_retries ]; then
+        echo -e "   [-] 直连拉取 GeoData (尝试 $attempt/$max_retries) ..."
+        
+        # curl 自身的 --retry 用于处理底层的断流
+        curl -sSLk --retry 3 -o "$tmp_ip" "${urls[0]}"
+        curl -sSLk --retry 3 -o "$tmp_site" "${urls[1]}"
+        
+        # 核心防线：文件大小校验
+        local size_ip=$(du -k "$tmp_ip" | awk '{print $1}')
+        local size_site=$(du -k "$tmp_site" | awk '{print $1}')
+        
+        if [ -n "$size_ip" ] && [ "$size_ip" -gt 1000 ] && [ -n "$size_site" ] && [ "$size_site" -gt 1000 ]; then
+            success=true
+            break # 校验通过，直接跳出重试循环
+        else
+            echo -e "   [WARN] 第 $attempt 次拉取失败 (文件损坏或过小)，准备重试..."
+            sleep 2 # 稍微停顿 2 秒，避免被 GitHub 频繁请求拦截
+            attempt=$((attempt + 1))
         fi
-
-        ln -sf "$file_path" "$link_path"
     done
 
-    # 简化的自动更新设置提示 (加入加速代理与重试机制，防止纯 v6 失联)
-    local proxy_prefix="https://ghproxy.net/"
-    local update_cmd="curl -kL --retry 3 -o $share_dir/geoip.dat ${proxy_prefix}${files[geoip.dat]} && curl -kL --retry 3 -o $share_dir/geosite.dat ${proxy_prefix}${files[geosite.dat]} && /usr/bin/systemctl restart xray"
-    local cron_job="0 4 * * 0 $update_cmd >/dev/null 2>&1"
+    # 循环结束后，判断最终结果
+    if [ "$success" = true ]; then
+        mv -f "$tmp_ip" "$share_dir/geoip.dat"
+        mv -f "$tmp_site" "$share_dir/geosite.dat"
+        chmod 644 "$share_dir"/*.dat
+        echo -e "${OK} GeoData 规则库下载并校验成功！"
+    else
+        echo -e "${ERR} GeoData 下载失败（连续 $max_retries 次拉取均损坏），为保障服务安全，已终止安装！"
+        rm -f "$tmp_ip" "$tmp_site"
+        exit 1
+    fi
     
-    if ! command -v crontab &>/dev/null; then apt-get install -y cron &>/dev/null; fi
-    (crontab -l 2>/dev/null | grep -v 'geoip.dat' | grep -v 'geosite.dat'; echo "$cron_job") | crontab -
+    # --- 定时任务 (Cron) 保持不变 ---
+    local safe_cron_cmd="tmp_ip=\$(mktemp) && tmp_site=\$(mktemp) && curl -sSLk --retry 3 -o \$tmp_ip ${urls[0]} && curl -sSLk --retry 3 -o \$tmp_site ${urls[1]} && if [ \$(du -k \$tmp_ip | awk '{print \$1}') -gt 1000 ] && [ \$(du -k \$tmp_site | awk '{print \$1}') -gt 1000 ]; then mv -f \$tmp_ip $share_dir/geoip.dat && mv -f \$tmp_site $share_dir/geosite.dat && systemctl restart xray; else rm -f \$tmp_ip \$tmp_site; fi"
     
+    local cron_job="0 4 * * 0 $safe_cron_cmd >/dev/null 2>&1"
+    
+    if command -v crontab &>/dev/null; then
+        (crontab -l 2>/dev/null | grep -v "geoip.dat" | grep -v "geosite.dat"; echo "$cron_job") | crontab -
     echo -e "    └─ 自动更新: ${GREEN}已配置 (每周日 4:00)${PLAIN}"
+    else
+        echo -e "${WARN} 未检测到 crontab，跳过自动更新配置"
+    fi
 }
 
 # 主入口函数 (Main Function)
