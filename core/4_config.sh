@@ -53,7 +53,7 @@ core_config() {
       "port": ${PORT_VISION},
       "protocol": "vless",
       "settings": {
-        "clients": [ { "id": "${UUID}", "flow": "xtls-rprx-vision", "email": "admin_vision" } ],
+        "clients": [ { "id": "${UUID}", "flow": "xtls-rprx-vision", "email": "admin" } ],
         "decryption": "none"
       },
       "streamSettings": {
@@ -75,7 +75,7 @@ core_config() {
       "port": ${PORT_XHTTP},
       "protocol": "vless",
       "settings": {
-        "clients": [ { "id": "${UUID}", "email": "admin_xhttp" } ],
+        "clients": [ { "id": "${UUID}", "email": "admin" } ],
         "decryption": "none"
       },
       "streamSettings": {
