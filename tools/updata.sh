@@ -44,7 +44,7 @@ update_geodata() {
     local success=false
     
     # 增加业务层级的重试循环
-    while [ $attempt -le $max_retries ]; then
+    while [ $attempt -le $max_retries ]; do
         echo -e "   [-] 直连拉取 GeoData (尝试 $attempt/$max_retries) ..."
         
         # 纯直连下载
