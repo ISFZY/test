@@ -131,9 +131,7 @@ while true; do
 
     # --- 输入监听循环 ---
     while true; do
-        # 使用 \r\033[K 保证输入行干净
-        echo -ne "\r\033[K请输入选项 [0-4]: "
-        read -n 1 -s -r choice
+        read -p $'\r\033[K请输入选项 [0-4]: ' choice
         
         case "$choice" in
             1|2|3|4|0|f|F|"") 
