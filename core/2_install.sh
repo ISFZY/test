@@ -120,7 +120,7 @@ install_geodata_robust() {
         exit 1
     fi
     
-    # --- 定时任务 (Cron) 保持不变 ---
+    # --- 定时任务 (Cron) ---
     local safe_cron_cmd="tmp_ip=\$(mktemp) && tmp_site=\$(mktemp) && curl -sSLk --retry 3 -o \$tmp_ip ${urls[0]} && curl -sSLk --retry 3 -o \$tmp_site ${urls[1]} && if [ \$(du -k \$tmp_ip | awk '{print \$1}') -gt 1000 ] && [ \$(du -k \$tmp_site | awk '{print \$1}') -gt 1000 ]; then mv -f \$tmp_ip $share_dir/geoip.dat && mv -f \$tmp_site $share_dir/geosite.dat && systemctl restart xray; else rm -f \$tmp_ip \$tmp_site; fi"
     
     local cron_job="0 4 * * 0 $safe_cron_cmd >/dev/null 2>&1"
