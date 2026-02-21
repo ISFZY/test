@@ -74,7 +74,7 @@ restore_backup() {
     echo -ne "请输入选项 [0-$limit]: "
     
     while true; do
-        read -n 1 -s key < /dev/tty
+        read -r key < /dev/tty
         
         if [[ "$key" =~ ^[0-9]$ ]]; then
             if [ "$key" -eq 0 ]; then
@@ -114,7 +114,7 @@ restore_backup() {
     echo -ne "$confirm_msg"
     
     while true; do
-        read -n 1 -s key < /dev/tty
+        read -r key < /dev/tty
         
         case "$key" in
             [yY]) 
@@ -189,7 +189,7 @@ while true; do
     fi
 
     # 读取按键 (增加 -r 防止转义，< /dev/tty 强制读键盘)
-    read -n 1 -s -r key < /dev/tty
+    read -r key < /dev/tty
     
     # 防空值死循环
     if [ -z "$key" ]; then continue; fi
