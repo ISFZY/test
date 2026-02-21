@@ -127,7 +127,7 @@ echo -e "${BLUE}          第二阶段：系统环境深度复原 (Optional)    
 echo -e "${BLUE}=============================================================${PLAIN}"
 echo -e "${YELLOW}检测到系统层面存在 Xray-Auto 的全局网络与性能优化痕迹。${PLAIN}"
 echo -e "若您的服务器将用于建站或其他业务，保留它们(BBR/Swap/Fail2ban)是有益的。"
-echo -e "如果需要彻底净身出户，您可以选择继续深度复原：\n"
+echo -e "如果需要彻底清除，您可以选择继续深度复原：\n"
 echo -e "  - ${GRAY}删除虚拟内存${PLAIN} (/swapfile)"
 echo -e "  - ${GRAY}移除 BBR 优化配置${PLAIN} (恢复系统默认网络队列)"
 echo -e "  - ${GRAY}恢复网络优先级${PLAIN} (重置 IPv4/IPv6 双栈策略)"
